@@ -55,6 +55,8 @@
   .btn-copiar{background:var(--accent);color:var(--on-accent);border:none}
   .btn-vendido{background:var(--card);color:var(--destructive);border:1.5px solid var(--destructive)}
   .btn-copiar:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
+  .btn-compartir{width:100%;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:var(--on-primary);border:none;margin-top:8px}
+  .btn-compartir:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
   .aviso{font-size:12px;color:var(--muted-fg);background:var(--muted);border-radius:8px;padding:10px 12px;margin-top:10px;line-height:1.5}
   .vacio{text-align:center;color:var(--muted-fg);padding:36px 16px;font-size:14px;line-height:1.6}
   footer{text-align:center;color:var(--muted-fg);font-size:12px;line-height:1.7;padding:18px 16px 8px}
@@ -115,6 +117,53 @@ function copiarTexto(btn, texto){
   }
 }
 
+function compartirWhatsApp(btn, o){
+  const textoOriginal = btn.textContent;
+  function listo(msg){
+    btn.textContent = msg;
+    setTimeout(function(){ btn.textContent = textoOriginal; }, 2000);
+  }
+  // Intento 1: menú de compartir del teléfono con foto + texto juntos
+  if(navigator.share){
+    (async function(){
+      try{
+        let files = [];
+        if(o.foto){
+          const resp = await fetch(o.foto, {mode: 'cors'});
+          if(resp.ok){
+            const blob = await resp.blob();
+            const ext = (blob.type.split('/')[1] || 'jpg').split(';')[0];
+            const file = new File([blob], 'foto.' + ext, {type: blob.type});
+            if(!navigator.canShare || navigator.canShare({files: [file]})){ files = [file]; }
+          }
+        }
+        const datos = {text: o.textoEstado};
+        if(files.length){ datos.files = files; }
+        await navigator.share(datos);
+        listo('¡Compartido!');
+      }catch(e){
+        if(e && e.name === 'AbortError'){ return; }
+        respaldo();
+      }
+    })();
+    return;
+  }
+  respaldo();
+  // Respaldo: WhatsApp con solo el texto; la foto se adjunta a mano
+  function respaldo(){
+    if(o.foto){
+      const card = btn.closest('.tarjeta');
+      if(card && !card.querySelector('.aviso-foto')){
+        const aviso = document.createElement('p');
+        aviso.className = 'aviso aviso-foto';
+        aviso.textContent = 'Se compartió solo el texto: la foto no se pudo leer desde su web. Guarda la foto con una pulsación larga y adjúntala en WhatsApp.';
+        card.querySelector('.cuerpo').appendChild(aviso);
+      }
+    }
+    window.open('https://wa.me/?text=' + encodeURIComponent(o.textoEstado), '_blank');
+  }
+}
+
 function pintarLista(){
   const lista = document.getElementById('lista');
   lista.innerHTML = "";
@@ -154,6 +203,7 @@ function pintarLista(){
           '<button class="btn-copiar"' + (o.estado === "vendido" ? ' disabled' : '') + '>Copiar texto</button>' +
           (o.estado === "vendido" ? '' : '<button class="btn-vendido">Marcar vendido</button>') +
         '</div>' +
+        '<button class="btn-compartir"' + (o.estado === "vendido" ? ' disabled' : '') + '>Compartir en WhatsApp</button>' +
       '</div>';
     const im = card.querySelector('img.foto');
     if(im){
@@ -169,12 +219,16 @@ function pintarLista(){
     if(btnCopiar && o.estado !== "vendido"){
       btnCopiar.onclick = function(){ copiarTexto(btnCopiar, o.textoEstado); };
     }
+    const btnCompartir = card.querySelector('.btn-compartir');
+    if(btnCompartir && o.estado !== "vendido"){
+      btnCompartir.onclick = function(){ compartirWhatsApp(btnCompartir, o); };
+    }
     const btnVendido = card.querySelector('.btn-vendido');
     if(btnVendido){
       btnVendido.onclick = function(){
-        if(card.querySelector('.aviso')) return;
+        if(card.querySelector('.aviso-vendido')) return;
         const aviso = document.createElement('p');
-        aviso.className = 'aviso';
+        aviso.className = 'aviso aviso-vendido';
         aviso.textContent = 'Solo el administrador puede marcarlo vendido. Avísale a D.J. y se actualiza en la página.';
         card.querySelector('.cuerpo').appendChild(aviso);
       };
