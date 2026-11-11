@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMPACTO · Catálogo para gestores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#15803D;
+    --on-primary:#FFFFFF;
+    --accent:#0369A1;
+    --on-accent:#FFFFFF;
+    --bg:#F0FDF4;
+    --fg:#14532D;
+    --card:#FFFFFF;
+    --muted:#E8F0F1;
+    --muted-fg:#475569;
+    --border:#BBF7D0;
+    --destructive:#DC2626;
+    --ink:#0F172A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);-webkit-text-size-adjust:100%}
+  header{background:var(--fg);color:var(--on-primary);padding:20px 16px 18px}
+  header h1{font-size:28px;font-weight:800;letter-spacing:.5px}
+  header p{font-size:13px;color:var(--border);margin-top:6px}
+  .fecha{background:var(--card);padding:11px 16px;font-size:13px;color:var(--muted-fg);border-bottom:1px solid var(--border)}
+  .fecha b{color:var(--fg)}
+  main{padding:12px 16px 24px;max-width:640px;margin:0 auto}
+  .buscador{width:100%;height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 14px;font-size:14px;font-family:inherit;background:var(--card);color:var(--fg);outline:none}
+  .buscador:focus{border-color:var(--primary)}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--border);background:var(--card);color:var(--fg);font-size:13px;font-family:inherit;cursor:pointer}
+  .chip.activo{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
+  .tarjeta{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-top:12px}
+  .tarjeta img.foto{display:block;width:100%;height:230px;object-fit:cover;object-position:center 30%;background:var(--muted)}
+  .foto-vacia{height:170px;background:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted-fg);gap:6px}
+  .foto-vacia b{font-size:15px}
+  .foto-vacia span{font-size:12px}
+  .cuerpo{padding:14px 14px 16px}
+  .cuerpo h2{font-size:18px;font-weight:700;color:var(--fg)}
+  .tarjeta.vendida .cuerpo h2,.tarjeta.vendida .precio{color:var(--muted-fg);text-decoration:line-through}
+  .fila-precio{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+  .precio{font-size:24px;font-weight:800;color:var(--primary)}
+  .estado{font-size:12px;font-weight:700;padding:6px 12px;border-radius:13px;white-space:nowrap}
+  .estado.disponible{background:var(--primary);color:var(--on-primary)}
+  .estado.vendido{background:var(--destructive);color:#fff}
+  .meta{font-size:13px;color:var(--muted-fg);margin-top:10px;line-height:1.5}
+  .acciones{display:flex;gap:8px;margin-top:14px}
+  .acciones button{flex:1;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
+  .btn-copiar{background:var(--accent);color:var(--on-accent);border:none}
+  .btn-vendido{background:var(--card);color:var(--destructive);border:1.5px solid var(--destructive)}
+  .btn-copiar:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
+  .aviso{font-size:12px;color:var(--muted-fg);background:var(--muted);border-radius:8px;padding:10px 12px;margin-top:10px;line-height:1.5}
+  .vacio{text-align:center;color:var(--muted-fg);padding:36px 16px;font-size:14px;line-height:1.6}
+  footer{text-align:center;color:var(--muted-fg);font-size:12px;line-height:1.7;padding:18px 16px 8px}
+  .ref{position:relative}
+  .ref .chip-foto{position:absolute;left:10px;bottom:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>IMPACTO</h1>
+  <p>Catálogo para gestores · Ofertas de la comunidad</p>
+</header>
+<div class="fecha"><span id="fecha">Hoy</span> · <b id="conteo"></b></div>
+<main>
+  <input class="buscador" id="buscador" type="search" placeholder="Buscar producto…" aria-label="Buscar producto">
+  <div class="chips" id="chips"></div>
+  <div id="lista"></div>
+</main>
+<footer>
+  Resumen diario · Se actualiza cada noche a las 8:00<br>
+  La foto es referencial, no es la del vendedor.
+</footer>
+<script>
+const GRUPOS = ["COCINAS","ENERGÍA","LAVADORAS","TV","HORNOS","NEVERAS","REFRIGERADORES","SPLITS","BOCINAS","CAJITAS","FREIDORAS","OLLAS","VENTILADORES","LICUADORAS","BASES","CAFETERAS","LUMINARIA","COLCHONES","TRANSPORTE","OTROS"];
+let ofertas = [];
+let grupoActivo = "Todos";
+let textoBusqueda = "";
+
+function fechaHoy(){
+  try{
+    return new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  }catch(e){ return ""; }
+}
+document.getElementById('fecha').textContent = fechaHoy();
+
+function pintarChips(){
+  const cont = document.getElementById('chips');
+  cont.innerHTML = "";
+  ["Todos"].concat(GRUPOS).forEach(function(g){
+    const b = document.createElement('button');
+    b.className = 'chip' + (g === grupoActivo ? ' activo' : '');
+    b.textContent = g.charAt(0) + g.slice(1).toLowerCase();
+    b.onclick = function(){ grupoActivo = g; pintarChips(); pintarLista(); };
+    cont.appendChild(b);
+  });
+}
+
+function copiarTexto(btn, texto){
+  function hecho(){ btn.textContent = "¡Copiado!"; setTimeout(function(){ btn.textContent = "Copiar texto"; }, 1800); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(hecho, function(){ respaldo(); });
+  } else { respaldo(); }
+  function respaldo(){
+    const ta = document.createElement('textarea');
+    ta.value = texto; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); hecho(); }catch(e){}
+    document.body.removeChild(ta);
+  }
+}
+
+function pintarLista(){
+  const lista = document.getElementById('lista');
+  lista.innerHTML = "";
+  const q = textoBusqueda.trim().toLowerCase();
+  const filtradas = ofertas.filter(function(o){
+    if(grupoActivo !== "Todos" && o.grupo !== grupoActivo) return false;
+    if(q && (o.tipo + " " + o.modelo + " " + o.grupo).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  document.getElementById('conteo').textContent = ofertas.filter(function(o){return o.estado === "disponible";}).length + (ofertas.filter(function(o){return o.estado === "disponible";}).length === 1 ? " oferta hoy" : " ofertas hoy");
+  if(filtradas.length === 0){
+    lista.innerHTML = '<div class="vacio">No hay ofertas en este grupo hoy.<br>El resumen se actualiza cada noche a las 8:00.</div>';
+    return;
+  }
+  filtradas.forEach(function(o){
+    const card = document.createElement('article');
+    card.className = 'tarjeta' + (o.estado === "vendido" ? ' vendida' : '');
+    let fotoHtml = "";
+    if(o.foto){
+      fotoHtml = '<div class="ref"><img class="foto" src="' + o.foto + '" alt="' + o.tipo + ' ' + o.modelo + '" loading="lazy"><span class="chip-foto">FOTO DE REFERENCIA</span></div>';
+    } else {
+      fotoHtml = '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span></div>';
+    }
+    const meta = [];
+    if(o.pago) meta.push("Pago: " + o.pago);
+    const det = [];
+    if(o.garantia) det.push("Garantía: " + o.garantia);
+    if(o.domicilio) det.push("Domicilio " + o.domicilio);
+    if(det.length) meta.push(det.join(" · "));
+    card.innerHTML = fotoHtml +
+      '<div class="cuerpo">' +
+        '<h2>' + o.tipo + ' ' + o.modelo + '</h2>' +
+        '<div class="fila-precio"><span class="precio">' + o.precio + ' ' + o.moneda + '</span>' +
+        '<span class="estado ' + (o.estado === "vendido" ? "vendido" : "disponible") + '">' + (o.estado === "vendido" ? "VENDIDO" : "DISPONIBLE") + '</span></div>' +
+        meta.map(function(m){ return '<p class="meta">' + m + '</p>'; }).join('') +
+        '<div class="acciones">' +
+          '<button class="btn-copiar"' + (o.estado === "vendido" ? ' disabled' : '') + '>Copiar texto</button>' +
+          (o.estado === "vendido" ? '' : '<button class="btn-vendido">Marcar vendido</button>') +
+        '</div>' +
+      '</div>';
+    const im = card.querySelector('img.foto');
+    if(im){
+      im.onerror = function(){
+        const ref = im.closest('.ref');
+        const ph = document.createElement('div');
+        ph.className = 'foto-vacia';
+        ph.innerHTML = '<b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span>';
+        ref.replaceWith(ph);
+      };
+    }
+    const btnCopiar = card.querySelector('.btn-copiar');
+    if(btnCopiar && o.estado !== "vendido"){
+      btnCopiar.onclick = function(){ copiarTexto(btnCopiar, o.textoEstado); };
+    }
+    const btnVendido = card.querySelector('.btn-vendido');
+    if(btnVendido){
+      btnVendido.onclick = function(){
+        if(card.querySelector('.aviso')) return;
+        const aviso = document.createElement('p');
+        aviso.className = 'aviso';
+        aviso.textContent = 'Solo el administrador puede marcarlo vendido. Avísale a D.J. y se actualiza en la página.';
+        card.querySelector('.cuerpo').appendChild(aviso);
+      };
+    }
+    lista.appendChild(card);
+  });
+}
+
+document.getElementById('buscador').addEventListener('input', function(e){
+  textoBusqueda = e.target.value;
+  pintarLista();
+});
+
+fetch('ofertas.json')
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    ofertas = data.ofertas || [];
+    pintarChips();
+    pintarLista();
+  })
+  .catch(function(){
+    document.getElementById('lista').innerHTML = '<div class="vacio">No se pudieron cargar las ofertas.<br>Intenta recargar la página.</div>';
+  });
+</script>
+</body>
+</html>
