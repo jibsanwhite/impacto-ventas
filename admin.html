@@ -67,9 +67,14 @@
   a{color:var(--lime)}
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
   .pg-foto{width:100%;max-width:280px;border-radius:16px;border:1px solid var(--border);display:block;margin-top:8px}
-  .pg-mini{width:56px;height:56px;object-fit:cover;border-radius:12px;border:2px solid var(--border);cursor:pointer;padding:0}
+  .pg-mini{width:56px;height:56px;object-fit:cover;border-radius:12px;border:2px solid var(--border);cursor:pointer;padding:0;display:block}
   .pg-mini.elegida{border-color:var(--lime)}
-  .pg-minis{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .pg-mini.usada{opacity:.45;filter:grayscale(.6)}
+  .pg-minis{display:grid;grid-template-columns:repeat(auto-fill,56px);gap:8px;margin-top:8px}
+  .pg-mini-wrap{position:relative;width:56px;height:56px;cursor:pointer;display:block}
+  .pg-mini-wrap.elegida::after{content:'✓';position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--lime);color:#0A0A0A;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #0A0A0A;z-index:1}
+  .pg-mini-wrap.usada::before{content:'USADA';position:absolute;bottom:2px;left:2px;right:2px;font-size:8px;font-weight:900;letter-spacing:.03em;text-align:center;background:rgba(10,10,10,.75);color:#fff;border-radius:4px;padding:1px 0;z-index:1}
+  .pg-usadas{font-size:11px;color:var(--muted);margin-top:6px}
   .pg-origen{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--lime)}
   .pg-prod{border-top:1px solid var(--border);padding:16px 0}
   .pg-prov{border:1px solid var(--border);border-radius:16px;padding:12px;margin-top:10px;background:var(--panel)}
@@ -171,14 +176,32 @@ function renderVistaPegar(){
       html += '<img class="pg-foto" src="' + escapar(foto.foto_url) + '" alt="Foto del producto">';
     }
     if(foto.detalle) html += '<p class="sub">' + escapar(foto.detalle) + '</p>';
-    if(foto.candidatas && foto.candidatas.length){
-      html += '<div class="pg-minis">' + foto.candidatas.map(function(c){
+    var elegidosOtros = {};
+    vistaPegar.forEach(function(o2, j){
+      if(j !== i && o2.foto && o2.foto.origen === 'drive' && o2.foto.drive_id) elegidosOtros[o2.foto.drive_id] = true;
+    });
+    var candidatasVisibles = (foto.candidatas || []).filter(function(c){ return !elegidosOtros[c.drive_id]; });
+    if(candidatasVisibles.length){
+      html += '<div class="pg-minis">' + candidatasVisibles.map(function(c){
         const elegida = foto.drive_id && c.drive_id === foto.drive_id;
-        return '<img class="pg-mini' + (elegida ? ' elegida' : '') + '" src="' + escapar(c.foto_url) + '" data-pg-foto="' + escapar(c.drive_id) + '" data-pg-nombre="' + escapar(c.nombre) + '" alt="' + escapar(c.nombre) + '">';
+        return '<span class="pg-mini-wrap' + (elegida ? ' elegida' : '') + '" data-pg-foto="' + escapar(c.drive_id) + '" data-pg-nombre="' + escapar(c.nombre) + '" data-pg-src="' + escapar(c.foto_url) + '"><img class="pg-mini' + (elegida ? ' elegida' : '') + '" src="' + escapar(c.foto_url) + '" alt="' + escapar(c.nombre) + '"></span>';
       }).join('') + '</div>';
     }
-    if(foto.origen === 'ninguno'){
-      html += '<div class="fila-foto"><button class="btn-chico btn-toggle" data-pg-buscar-foto="' + i + '">Buscar foto de referencia</button></div>';
+    if(foto.usadas && foto.usadas.length){
+      html += '<div class="fila-foto"><button class="btn-chico" data-pg-usadas="' + i + '">' + (of._mostrarUsadas ? 'Ocultar' : 'Mostrar') + ' fotos ya usadas (' + foto.usadas.length + ')</button></div>';
+      if(of._mostrarUsadas){
+        html += '<p class="pg-usadas">Ya están asignadas a otro producto. Elígela solo si la quieres también aquí.</p><div class="pg-minis">' + foto.usadas.map(function(c){
+          const elegida = foto.drive_id && c.drive_id === foto.drive_id;
+          return '<span class="pg-mini-wrap usada' + (elegida ? ' elegida' : '') + '" data-pg-foto="' + escapar(c.drive_id) + '" data-pg-nombre="' + escapar(c.nombre) + '" data-pg-src="' + escapar(c.foto_url) + '" title="Ya usada en otro producto"><img class="pg-mini usada' + (elegida ? ' elegida' : '') + '" src="' + escapar(c.foto_url) + '" alt="' + escapar(c.nombre) + ' (usada)"></span>';
+        }).join('') + '</div>';
+      }
+    }
+    html += '<div class="fila-foto"><button class="btn-chico btn-toggle" data-pg-buscar-foto="' + i + '">Buscar foto de referencia</button></div>';
+    if(foto.opciones && foto.opciones.length > 1){
+      html += '<div class="pg-minis">' + foto.opciones.map(function(op, k){
+        const elegida = foto.foto_url && op.foto_url === foto.foto_url;
+        return '<span class="pg-mini-wrap' + (elegida ? ' elegida' : '') + '" data-pg-opcion="' + k + '"><img class="pg-mini' + (elegida ? ' elegida' : '') + '" src="' + escapar(op.foto_url) + '" title="' + escapar(op.fuente || op.origen || '') + '" alt="Opción ' + (k + 1) + ' de ' + escapar(op.origen || 'Internet') + '"></span>';
+      }).join('') + '</div>';
     }
     html += '<label>o pega la dirección de una foto<input data-pg="foto_url" placeholder="https://…" value="' + escapar(foto.origen === 'internet' ? foto.foto_url : '') + '"></label>';
     (of.proveedores || []).forEach(function(sp, j){
@@ -197,17 +220,19 @@ function renderVistaPegar(){
     html += '</div>';
   });
   vista.innerHTML = html;
-  vista.querySelectorAll('[data-pg-foto]').forEach(function(img){
-    img.onclick = function(){
+  vista.querySelectorAll('[data-pg-foto]').forEach(function(el){
+    el.onclick = function(){
       recogerVistaPegar();
-      const bloque = img.closest('[data-pg-prod]');
+      const bloque = el.closest('[data-pg-prod]');
       const i = Number(bloque.getAttribute('data-pg-prod'));
       const of = vistaPegar[i];
       of.foto = {
-        foto_url: img.getAttribute('src'), foto_tipo: 'vendedor',
-        origen: 'drive', drive_id: img.getAttribute('data-pg-foto'),
-        detalle: 'Elegida de Drive: ' + img.getAttribute('data-pg-nombre'),
-        candidatas: (of.foto && of.foto.candidatas) || []
+        foto_url: el.getAttribute('data-pg-src'), foto_tipo: 'vendedor',
+        origen: 'drive', drive_id: el.getAttribute('data-pg-foto'),
+        detalle: 'Elegida de Drive: ' + el.getAttribute('data-pg-nombre'),
+        candidatas: (of.foto && of.foto.candidatas) || [],
+        usadas: (of.foto && of.foto.usadas) || [],
+        opciones: (of.foto && of.foto.opciones) || []
       };
       renderVistaPegar();
     };
@@ -218,13 +243,43 @@ function renderVistaPegar(){
       const i = Number(btn.getAttribute('data-pg-buscar-foto'));
       const of = vistaPegar[i];
       const global = document.getElementById('msg-global');
-      mensaje(global, 'info', 'Buscando una foto de referencia en internet…');
+      btn.disabled = true;
+      btn.textContent = 'Buscando fotos…';
+      mensaje(global, 'info', 'Buscando fotos de referencia en internet…');
       llamarAPI('foto_automatica', {grupo: of.grupo, tipo: of.tipo, modelo: of.modelo}).then(function(r){
-        if(!r.ok){ mensaje(global, 'error', r.error || 'No se encontró foto.'); return; }
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se encontró foto.'); renderVistaPegar(); return; }
         of.foto = r;
         renderVistaPegar();
         mensaje(global, r.origen === 'internet' ? 'ok' : 'info', r.detalle || 'Foto actualizada.');
-      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); renderVistaPegar(); });
+    };
+  });
+  vista.querySelectorAll('[data-pg-opcion]').forEach(function(el){
+    el.onclick = function(){
+      recogerVistaPegar();
+      const bloque = el.closest('[data-pg-prod]');
+      const i = Number(bloque.getAttribute('data-pg-prod'));
+      const of = vistaPegar[i];
+      const k = Number(el.getAttribute('data-pg-opcion'));
+      const op = (of.foto && of.foto.opciones && of.foto.opciones[k]) || null;
+      if(!op) return;
+      of.foto = {
+        foto_url: op.foto_url, foto_tipo: 'referencia', origen: 'internet',
+        detalle: 'Referencia de Internet (' + (op.origen || 'Internet') + '): elegida de las opciones.',
+        candidatas: (of.foto && of.foto.candidatas) || [],
+        usadas: (of.foto && of.foto.usadas) || [],
+        opciones: (of.foto && of.foto.opciones) || []
+      };
+      renderVistaPegar();
+    };
+  });
+  vista.querySelectorAll('[data-pg-usadas]').forEach(function(btn){
+    btn.onclick = function(){
+      recogerVistaPegar();
+      const i = Number(btn.getAttribute('data-pg-usadas'));
+      const of = vistaPegar[i];
+      of._mostrarUsadas = !of._mostrarUsadas;
+      renderVistaPegar();
     };
   });
   vista.querySelectorAll('[data-pg="foto_url"]').forEach(function(inp){
@@ -237,7 +292,9 @@ function renderVistaPegar(){
       vistaPegar[i].foto = {
         foto_url: url, foto_tipo: 'referencia', origen: 'internet',
         detalle: 'Foto pegada a mano (referencia).',
-        candidatas: (vistaPegar[i].foto && vistaPegar[i].foto.candidatas) || []
+        candidatas: (vistaPegar[i].foto && vistaPegar[i].foto.candidatas) || [],
+        usadas: (vistaPegar[i].foto && vistaPegar[i].foto.usadas) || [],
+        opciones: (vistaPegar[i].foto && vistaPegar[i].foto.opciones) || []
       };
       renderVistaPegar();
     };
@@ -256,8 +313,8 @@ function recogerVistaPegar(){
       of[inp.getAttribute('data-pg')] = inp.value.trim();
     });
     const urlInput = bloque.querySelector('[data-pg="foto_url"]');
-    if(urlInput && urlInput.value.trim() && (!of.foto || of.foto.origen !== 'drive')){
-      of.foto = { foto_url: urlInput.value.trim(), foto_tipo: 'referencia', origen: 'internet', detalle: 'Foto pegada a mano (referencia).', candidatas: (of.foto && of.foto.candidatas) || [] };
+    if(urlInput && urlInput.value.trim() && (!of.foto || of.foto.origen !== 'drive') && urlInput.value.trim() !== (of.foto && of.foto.foto_url)){
+      of.foto = { foto_url: urlInput.value.trim(), foto_tipo: 'referencia', origen: 'internet', detalle: 'Foto pegada a mano (referencia).', candidatas: (of.foto && of.foto.candidatas) || [], usadas: (of.foto && of.foto.usadas) || [], opciones: (of.foto && of.foto.opciones) || [] };
     }
     bloque.querySelectorAll('[data-pg-prov]').forEach(function(pb){
       const j = Number(pb.getAttribute('data-pg-prov'));
