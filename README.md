@@ -1,4 +1,4 @@
-# Impacto — Ventas para estados
+# Impacto — Ventas
 
 Página de catálogo para los gestores de la comunidad IMPACTO: ofertas de productos del hogar con varios proveedores por producto, pedido por WhatsApp y panel de gestión con login y roles.
 
