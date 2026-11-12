@@ -1,0 +1,9 @@
+# Datos reales del negocio - NUNCA subir
+datos-reales*.json
+ofertas.json
+*privado*
+*.xlsx
+
+# Sistema
+.DS_Store
+Thumbs.db
