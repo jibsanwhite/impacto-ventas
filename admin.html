@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMPACTO · Panel de gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#15803D; --on-primary:#FFFFFF; --accent:#0369A1; --on-accent:#FFFFFF;
+    --bg:#F0FDF4; --fg:#14532D; --card:#FFFFFF; --muted:#E8F0F1; --muted-fg:#475569;
+    --border:#BBF7D0; --destructive:#DC2626; --ink:#0F172A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);-webkit-text-size-adjust:100%}
+  header{background:var(--fg);color:var(--on-primary);padding:20px 16px 18px}
+  header h1{font-size:26px;font-weight:800;letter-spacing:.5px}
+  header p{font-size:13px;color:var(--border);margin-top:6px}
+  main{padding:16px;max-width:640px;margin:0 auto}
+  .tarjeta{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-top:12px}
+  .tarjeta h2{font-size:17px;font-weight:700;margin-bottom:4px}
+  .tarjeta p.sub{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-bottom:10px}
+  label{display:block;font-size:12px;font-weight:700;color:var(--muted-fg);margin-top:12px}
+  input,select,textarea{width:100%;height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--fg);outline:none;margin-top:4px}
+  textarea{height:auto;padding:10px 12px;resize:vertical}
+  input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+  button{height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:none}
+  .btn-primario{background:var(--primary);color:var(--on-primary);width:100%;margin-top:16px}
+  .btn-acento{background:var(--accent);color:var(--on-accent);width:100%;margin-top:16px}
+  .btn-borde{background:var(--card);color:var(--destructive);border:1.5px solid var(--destructive);width:100%;margin-top:12px}
+  .btn-chico{height:38px;padding:0 12px;font-size:13px;width:auto;margin-top:0}
+  .btn-toggle{height:38px;padding:0 12px;font-size:13px;width:auto;margin-top:0;background:var(--primary);color:var(--on-primary)}
+  .btn-toggle.agotado{background:var(--destructive)}
+  .msg{font-size:13px;line-height:1.5;border-radius:8px;padding:10px 12px;margin-top:12px}
+  .msg.error{background:#FEF2F2;color:var(--destructive);border:1px solid #FECACA}
+  .msg.ok{background:#F0FDF4;color:var(--primary);border:1px solid var(--border)}
+  .msg.info{background:var(--muted);color:var(--muted-fg)}
+  .barra{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .barra .quien{font-size:13px;font-weight:700}
+  .prov{border-top:1px solid var(--muted);padding:12px 0}
+  .prov .linea{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .prov .linea input{width:110px;height:38px;margin-top:0}
+  .prov .nombre{font-weight:700;font-size:14px}
+  .prov .detalle{font-size:12px;color:var(--muted-fg);line-height:1.5;margin-top:4px}
+  .comision{font-size:12px;font-weight:700;color:var(--primary);background:#F0FDF4;border:1px solid var(--border);border-radius:8px;padding:4px 8px}
+  .prod-titulo{font-size:15px;font-weight:700}
+  .prod-sub{font-size:12px;color:var(--muted-fg);margin-top:2px}
+  .fila-foto{display:flex;gap:8px;margin-top:8px}
+  .fila-foto input{flex:1}
+  .fila-foto button{flex:0 0 auto}
+  .usuario-fila{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--muted);font-size:13px}
+  .usuario-fila b{font-size:14px}
+  .rol-chip{font-size:11px;font-weight:700;background:var(--muted);border-radius:10px;padding:3px 8px;color:var(--muted-fg)}
+  footer{text-align:center;color:var(--muted-fg);font-size:12px;line-height:1.7;padding:18px 16px 8px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>IMPACTO · Panel</h1>
+  <p>Gestión del catálogo · Solo administradores y gestores</p>
+</header>
+<main id="app">
+  <div class="tarjeta"><p class="sub">Cargando…</p></div>
+</main>
+<footer>
+  <a href="index.html">← Volver al catálogo público</a><br>
+  Las claves se guardan cifradas. Nunca compartas la tuya.
+</footer>
+
+<script>
+const GRUPOS = ["COCINAS","ENERGÍA","LAVADORAS","TV","HORNOS","NEVERAS","REFRIGERADORES","SPLITS","BOCINAS","CAJITAS","FREIDORAS","OLLAS","VENTILADORES","LICUADORAS","BASES","CAFETERAS","LUMINARIA","COLCHONES","TRANSPORTE","OTROS"];
+let API_URL = "";
+let sesion = null; // {token, usuario, rol, nombre}
+
+function leerSesion(){
+  try{
+    const t = localStorage.getItem('impacto_token');
+    const u = localStorage.getItem('impacto_usuario');
+    const r = localStorage.getItem('impacto_rol');
+    const n = localStorage.getItem('impacto_nombre');
+    if(t && u) sesion = {token: t, usuario: u, rol: r, nombre: n};
+  }catch(e){}
+}
+function guardarSesion(s){
+  sesion = s;
+  try{
+    localStorage.setItem('impacto_token', s.token);
+    localStorage.setItem('impacto_usuario', s.usuario);
+    localStorage.setItem('impacto_rol', s.rol || '');
+    localStorage.setItem('impacto_nombre', s.nombre || s.usuario);
+  }catch(e){}
+}
+function borrarSesion(){
+  sesion = null;
+  try{ localStorage.clear(); }catch(e){}
+}
+
+function llamarAPI(accion, datos){
+  datos = datos || {};
+  datos.action = accion;
+  if(sesion && sesion.token) datos.token = sesion.token;
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(datos),
+    redirect: 'follow'
+  }).then(function(r){ return r.json(); });
+}
+function escapar(s){
+  return String(s === undefined || s === null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function mensaje(cont, tipo, texto){
+  const viejo = cont.querySelector('.msg');
+  if(viejo) viejo.remove();
+  const d = document.createElement('div');
+  d.className = 'msg ' + tipo;
+  d.textContent = texto;
+  cont.appendChild(d);
+}
+
+function vistaSinBackend(){
+  document.getElementById('app').innerHTML =
+    '<div class="tarjeta"><h2>El backend aún no está conectado</h2>' +
+    '<p class="sub">Para que este panel funcione, D.J. tiene que desplegar el Apps Script (el cerebro) y poner su dirección en el archivo config.json. Mientras tanto, el catálogo público sigue funcionando con sus datos locales.</p>' +
+    '<p class="sub">Pasos: script.google.com → Proyecto nuevo → pegar Code.gs → Implementar como aplicación web → copiar la dirección /exec → avisarle a Max.</p></div>';
+}
+
+function vistaLogin(mostrarSetup){
+  const app = document.getElementById('app');
+  app.innerHTML =
+    (mostrarSetup
+      ? '<div class="tarjeta"><h2>Crear el primer administrador</h2>' +
+        '<p class="sub">Todavía no hay ningún usuario. Crea aquí la primera cuenta de administrador (la de D.J.). Después, desde el panel, se crean las cuentas de Nathali y de los gestores.</p>' +
+        '<label>Usuario<input id="s-usuario" autocomplete="off" placeholder="ej. dj"></label>' +
+        '<label>Nombre<input id="s-nombre" autocomplete="off" placeholder="ej. D.J."></label>' +
+        '<label>Clave (mínimo 8 caracteres)<input id="s-clave" type="password" placeholder="••••••••"></label>' +
+        '<label>Repetir la clave<input id="s-clave2" type="password" placeholder="••••••••"></label>' +
+        '<button class="btn-primario" id="s-boton">Crear administrador</button></div>'
+      : '') +
+    '<div class="tarjeta"><h2>Entrar al panel</h2>' +
+    '<p class="sub">Usa el usuario y la clave que te dio el administrador.</p>' +
+    '<label>Usuario<input id="l-usuario" autocomplete="username" placeholder="tu usuario"></label>' +
+    '<label>Clave<input id="l-clave" type="password" placeholder="••••••••"></label>' +
+    '<button class="btn-acento" id="l-boton">Entrar</button></div>';
+
+  if(mostrarSetup){
+    document.getElementById('s-boton').onclick = function(){
+      const cont = document.getElementById('app');
+      const u = document.getElementById('s-usuario').value.trim().toLowerCase();
+      const n = document.getElementById('s-nombre').value.trim();
+      const c = document.getElementById('s-clave').value;
+      const c2 = document.getElementById('s-clave2').value;
+      if(!u || !n || !c){ mensaje(cont, 'error', 'Completa usuario, nombre y clave.'); return; }
+      if(c.length < 8){ mensaje(cont, 'error', 'La clave debe tener al menos 8 caracteres.'); return; }
+      if(c !== c2){ mensaje(cont, 'error', 'Las claves no coinciden.'); return; }
+      llamarAPI('setup', {usuario: u, nombre: n, clave: c}).then(function(r){
+        if(!r.ok){ mensaje(cont, 'error', r.error || 'No se pudo crear el administrador.'); return; }
+        guardarSesion({token: r.token, usuario: r.usuario, rol: r.rol, nombre: n});
+        mensaje(cont, 'ok', 'Administrador creado. Entrando al panel…');
+        setTimeout(cargarPanel, 600);
+      }).catch(function(){ mensaje(cont, 'error', 'No se pudo hablar con el backend. Revisa la conexión.'); });
+    };
+  }
+  document.getElementById('l-boton').onclick = function(){
+    const cont = document.getElementById('app');
+    const u = document.getElementById('l-usuario').value.trim().toLowerCase();
+    const c = document.getElementById('l-clave').value;
+    if(!u || !c){ mensaje(cont, 'error', 'Escribe usuario y clave.'); return; }
+    llamarAPI('login', {usuario: u, clave: c}).then(function(r){
+      if(!r.ok){ mensaje(cont, 'error', r.error || 'No se pudo entrar.'); return; }
+      guardarSesion({token: r.token, usuario: r.usuario, rol: r.rol, nombre: r.nombre});
+      cargarPanel();
+    }).catch(function(){ mensaje(cont, 'error', 'No se pudo hablar con el backend. Revisa la conexión.'); });
+  };
+}
+
+function vistaPanel(datos){
+  const app = document.getElementById('app');
+  const esAdmin = sesion.rol === 'administrador';
+  let html = '<div class="tarjeta barra"><span class="quien">Hola, ' + escapar(sesion.nombre || sesion.usuario) + ' · ' + escapar(sesion.rol) + '</span>' +
+    '<button class="btn-chico" id="salir" style="background:var(--muted);color:var(--muted-fg)">Salir</button></div>';
+  html += '<div id="msg-global"></div>';
+
+  // Productos y proveedores
+  html += '<div class="tarjeta"><h2>Productos y existencias</h2>' +
+    '<p class="sub">' + (esAdmin
+      ? 'Marca agotado o disponible por proveedor. El cliente ve "desde" el precio más bajo y el producto queda agotado cuando ningún proveedor lo tiene.'
+      : 'Estos son tus proveedores. Puedes cambiar el precio y marcar agotado o disponible. Tu comisión la ves solo tú.') + '</p>' +
+    '<div id="lista-productos"></div></div>';
+
+  // Foto
+  if(esAdmin){
+    html += '<div class="tarjeta"><h2>Foto de un producto</h2>' +
+      '<p class="sub">Pega la dirección de una foto de internet y se guarda en Drive, o sube una foto desde el teléfono (la foto real del vendedor reemplaza a la de referencia).</p>' +
+      '<label>Producto<select id="f-producto"></select></label>' +
+      '<label>Dirección de la foto (internet)<input id="f-url" placeholder="https://…"></label>' +
+      '<div class="fila-foto"><button class="btn-chico btn-toggle" id="f-guardar-url">Guardar foto desde la web</button></div>' +
+      '<label>o subir foto desde el teléfono<input id="f-archivo" type="file" accept="image/*"></label>' +
+      '<label>Esta foto es<select id="f-tipo"><option value="referencia">Foto de referencia</option><option value="real">Foto del vendedor</option></select></label>' +
+      '<button class="btn-primario" id="f-subir">Subir foto</button></div>';
+  }
+
+  // Añadir producto / proveedor
+  if(esAdmin){
+    html += '<div class="tarjeta"><h2>Añadir producto</h2>' +
+      '<label>Grupo<select id="p-grupo">' + GRUPOS.map(function(g){ return '<option>' + g + '</option>'; }).join('') + '</select></label>' +
+      '<label>Tipo<input id="p-tipo" placeholder="ej. Ventilador recargable"></label>' +
+      '<label>Modelo<input id="p-modelo" placeholder="ej. Olmco F6"></label>' +
+      '<label>Características (separadas por ; )<input id="p-carac" placeholder="ej. Batería 20000 mAh; 3 velocidades; Linterna LED"></label>' +
+      '<label>Foto (dirección web, opcional)<input id="p-foto" placeholder="https://…"></label>' +
+      '<button class="btn-primario" id="p-boton">Añadir producto</button></div>';
+
+    html += '<div class="tarjeta"><h2>Añadir proveedor a un producto</h2>' +
+      '<label>Producto<select id="pr-producto"></select></label>' +
+      '<label>Proveedor<input id="pr-nombre" placeholder="ej. Dos Caminos"></label>' +
+      '<label>Gestor que lo atiende (usuario, opcional)<input id="pr-gestor" placeholder="ej. nathali"></label>' +
+      '<label>Precio<input id="pr-precio" type="number" min="0" step="1" placeholder="ej. 70"></label>' +
+      '<label>Moneda<select id="pr-moneda"><option>USD</option><option>MN</option><option>CUP</option></select></label>' +
+      '<label>Pago aceptado<input id="pr-pago" placeholder="ej. MN o USD"></label>' +
+      '<label>Comisión del gestor<input id="pr-comision" type="number" min="0" step="1" placeholder="ej. 1500"></label>' +
+      '<label>Moneda de la comisión<select id="pr-comision-moneda"><option>MN</option><option>USD</option><option>CUP</option></select></label>' +
+      '<label>Domicilio<input id="pr-domicilio" placeholder="ej. Incluido en la ciudad"></label>' +
+      '<label>Garantía<input id="pr-garantia" placeholder="ej. 7 días"></label>' +
+      '<label>Notas internas (solo gestión)<textarea id="pr-notas" rows="2" placeholder="ej. Si el cliente rechaza, paga el envío igual"></textarea></label>' +
+      '<button class="btn-primario" id="pr-boton">Añadir proveedor</button></div>';
+
+    // Usuarios
+    html += '<div class="tarjeta"><h2>Usuarios</h2>' +
+      '<p class="sub">Crea las cuentas de los gestores y de la administradora. Cada uno entra con su usuario y su clave.</p>' +
+      '<div id="lista-usuarios"></div>' +
+      '<label>Usuario nuevo<input id="u-usuario" placeholder="ej. nathali"></label>' +
+      '<label>Nombre<input id="u-nombre" placeholder="ej. Nathali"></label>' +
+      '<label>Rol<select id="u-rol"><option value="gestor">Gestor</option><option value="administrador">Administrador</option><option value="cliente">Cliente</option></select></label>' +
+      '<label>Clave (mínimo 8 caracteres)<input id="u-clave" type="password" placeholder="••••••••"></label>' +
+      '<button class="btn-primario" id="u-boton">Crear usuario</button></div>';
+  }
+
+  app.innerHTML = html;
+  document.getElementById('salir').onclick = function(){
+    llamarAPI('logout', {}).catch(function(){});
+    borrarSesion();
+    vistaLogin(false);
+  };
+
+  // Lista de productos
+  const lista = document.getElementById('lista-productos');
+  if(!datos.productos.length){
+    lista.innerHTML = '<p class="sub">No hay productos todavía. Añade el primero con el formulario de abajo.</p>';
+  }
+  datos.productos.forEach(function(p){
+    const provs = datos.proveedores.filter(function(s){ return String(s.producto_id) === String(p.id); });
+    const div = document.createElement('div');
+    div.className = 'prov';
+    let h = '<div class="prod-titulo">' + escapar(p.tipo) + ' ' + escapar(p.modelo) + '</div>' +
+      '<div class="prod-sub">' + escapar(p.grupo) + ' · Foto: ' + escapar(p.foto_tipo || 'referencia') + '</div>';
+    if(!provs.length) h += '<p class="sub">Sin proveedores todavía.</p>';
+    provs.forEach(function(s){
+      h += '<div class="prov" data-prov="' + s.id + '">' +
+        '<div class="nombre">' + escapar(s.proveedor) + (s.gestor_usuario ? ' · gestor: ' + escapar(s.gestor_usuario) : '') + '</div>' +
+        '<div class="linea">' +
+          '<input type="number" min="0" step="1" value="' + s.precio + '" data-campo="precio" aria-label="Precio"> ' + escapar(s.moneda) +
+          '<button class="btn-chico btn-toggle" data-accion="precio">Guardar precio</button>' +
+          '<button class="btn-chico btn-toggle' + (s.stock_disponible ? '' : ' agotado') + '" data-accion="stock">' + (s.stock_disponible ? 'Disponible ✓' : 'Agotado') + '</button>' +
+        '</div>' +
+        '<div class="detalle">Comisión: <span class="comision">' + s.comision + ' ' + escapar(s.comision_moneda || 'MN') + '</span>' +
+        (s.domicilio ? ' · Domicilio: ' + escapar(s.domicilio) : '') +
+        (s.garantia ? ' · Garantía: ' + escapar(s.garantia) : '') +
+        (s.pago ? ' · Pago: ' + escapar(s.pago) : '') +
+        (s.notas_internas ? '<br>Nota: ' + escapar(s.notas_internas) : '') + '</div>' +
+      '</div>';
+    });
+    div.innerHTML = h;
+    lista.appendChild(div);
+  });
+
+  // Acciones de precio y stock
+  lista.querySelectorAll('[data-accion]').forEach(function(btn){
+    btn.onclick = function(){
+      const fila = btn.closest('[data-prov]');
+      const id = fila.getAttribute('data-prov');
+      const acc = btn.getAttribute('data-accion');
+      const global = document.getElementById('msg-global');
+      if(acc === 'precio'){
+        const val = Number(fila.querySelector('[data-campo="precio"]').value);
+        if(!val || val <= 0){ mensaje(global, 'error', 'Escribe un precio mayor que 0.'); return; }
+        llamarAPI('update_proveedor', {id: id, precio: val}).then(function(r){
+          if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo guardar el precio.'); return; }
+          mensaje(global, 'ok', 'Precio actualizado.');
+        }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+      } else {
+        const esDisponible = btn.textContent.indexOf('Disponible') === 0;
+        llamarAPI('set_stock', {proveedor_id: id, disponible: !esDisponible}).then(function(r){
+          if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo cambiar el stock.'); return; }
+          cargarPanel();
+        }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+      }
+    };
+  });
+
+  if(esAdmin){
+    // Selectores de producto
+    const opciones = datos.productos.map(function(p){
+      return '<option value="' + p.id + '">' + escapar(p.tipo) + ' ' + escapar(p.modelo) + '</option>';
+    }).join('');
+    document.getElementById('f-producto').innerHTML = opciones;
+    document.getElementById('pr-producto').innerHTML = opciones;
+
+    // Guardar foto desde URL
+    document.getElementById('f-guardar-url').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const pid = document.getElementById('f-producto').value;
+      const url = document.getElementById('f-url').value.trim();
+      const tipo = document.getElementById('f-tipo').value;
+      if(!url){ mensaje(global, 'error', 'Pega primero la dirección de la foto.'); return; }
+      mensaje(global, 'info', 'Descargando la foto y guardándola en Drive…');
+      llamarAPI('guardar_foto_url', {producto_id: pid, image_url: url, foto_tipo: tipo}).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo guardar la foto.'); return; }
+        mensaje(global, 'ok', 'Foto guardada en Drive y puesta en el producto.');
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+
+    // Subir foto desde el teléfono
+    document.getElementById('f-subir').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const pid = document.getElementById('f-producto').value;
+      const tipo = document.getElementById('f-tipo').value;
+      const input = document.getElementById('f-archivo');
+      if(!input.files || !input.files[0]){ mensaje(global, 'error', 'Elige primero una foto del teléfono.'); return; }
+      const archivo = input.files[0];
+      const lector = new FileReader();
+      lector.onload = function(){
+        const base64 = String(lector.result).split(',')[1];
+        mensaje(global, 'info', 'Subiendo la foto a Drive…');
+        llamarAPI('subir_foto', {producto_id: pid, base64: base64, mime: archivo.type, nombre: archivo.name, foto_tipo: tipo}).then(function(r){
+          if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo subir la foto.'); return; }
+          mensaje(global, 'ok', 'Foto subida a Drive y puesta en el producto.');
+          input.value = '';
+        }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+      };
+      lector.readAsDataURL(archivo);
+    };
+
+    // Añadir producto
+    document.getElementById('p-boton').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const grupo = document.getElementById('p-grupo').value;
+      const tipo = document.getElementById('p-tipo').value.trim();
+      const modelo = document.getElementById('p-modelo').value.trim();
+      if(!tipo || !modelo){ mensaje(global, 'error', 'Escribe el tipo y el modelo.'); return; }
+      llamarAPI('add_producto', {
+        grupo: grupo, tipo: tipo, modelo: modelo,
+        caracteristicas: document.getElementById('p-carac').value.trim(),
+        foto_url: document.getElementById('p-foto').value.trim()
+      }).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo añadir el producto.'); return; }
+        mensaje(global, 'ok', 'Producto añadido.');
+        cargarPanel();
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+
+    // Añadir proveedor
+    document.getElementById('pr-boton').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const precio = Number(document.getElementById('pr-precio').value);
+      const nombre = document.getElementById('pr-nombre').value.trim();
+      if(!nombre || !precio || precio <= 0){ mensaje(global, 'error', 'Escribe el proveedor y un precio mayor que 0.'); return; }
+      llamarAPI('add_proveedor', {
+        producto_id: document.getElementById('pr-producto').value,
+        proveedor: nombre,
+        gestor_usuario: document.getElementById('pr-gestor').value.trim().toLowerCase(),
+        precio: precio,
+        moneda: document.getElementById('pr-moneda').value,
+        pago: document.getElementById('pr-pago').value.trim(),
+        comision: Number(document.getElementById('pr-comision').value) || 0,
+        comision_moneda: document.getElementById('pr-comision-moneda').value,
+        domicilio: document.getElementById('pr-domicilio').value.trim(),
+        garantia: document.getElementById('pr-garantia').value.trim(),
+        notas_internas: document.getElementById('pr-notas').value.trim(),
+        stock_disponible: true
+      }).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo añadir el proveedor.'); return; }
+        mensaje(global, 'ok', 'Proveedor añadido.');
+        cargarPanel();
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+
+    // Usuarios
+    llamarAPI('listar_usuarios', {}).then(function(r){
+      if(!r.ok) return;
+      const cont = document.getElementById('lista-usuarios');
+      if(!cont) return;
+      cont.innerHTML = (r.usuarios || []).map(function(u){
+        return '<div class="usuario-fila"><span><b>' + escapar(u.nombre) + '</b> · ' + escapar(u.usuario) + '</span><span class="rol-chip">' + escapar(u.rol) + '</span></div>';
+      }).join('') || '<p class="sub">No hay usuarios.</p>';
+    }).catch(function(){});
+
+    document.getElementById('u-boton').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const u = document.getElementById('u-usuario').value.trim().toLowerCase();
+      const n = document.getElementById('u-nombre').value.trim();
+      const rol = document.getElementById('u-rol').value;
+      const c = document.getElementById('u-clave').value;
+      if(!u || !n || !c){ mensaje(global, 'error', 'Completa usuario, nombre y clave.'); return; }
+      if(c.length < 8){ mensaje(global, 'error', 'La clave debe tener al menos 8 caracteres.'); return; }
+      llamarAPI('crear_usuario', {usuario: u, nombre: n, rol: rol, clave: c}).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo crear el usuario.'); return; }
+        mensaje(global, 'ok', 'Usuario creado. Pásale su usuario y su clave.');
+        cargarPanel();
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+  }
+}
+
+function cargarPanel(){
+  const app = document.getElementById('app');
+  llamarAPI('datos_gestion', {}).then(function(r){
+    if(!r.ok){
+      if((r.error || '').indexOf('Sesión') !== -1){ borrarSesion(); vistaLogin(false); return; }
+      app.innerHTML = '<div class="tarjeta"><h2>No se pudo cargar el panel</h2><p class="sub">' + escapar(r.error || 'Error desconocido.') + '</p></div>';
+      return;
+    }
+    vistaPanel(r);
+  }).catch(function(){
+    app.innerHTML = '<div class="tarjeta"><h2>Sin conexión con el backend</h2><p class="sub">No se pudo hablar con el Apps Script. Revisa la conexión e inténtalo de nuevo.</p></div>';
+  });
+}
+
+function arrancar(){
+  leerSesion();
+  fetch('config.json')
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return {}; })
+    .then(function(cfg){
+      API_URL = (cfg && cfg.api_url) || '';
+      if(!API_URL){ vistaSinBackend(); return; }
+      if(sesion && sesion.token){ cargarPanel(); return; }
+      fetch(API_URL + '?action=estado', {redirect: 'follow'})
+        .then(function(r){ return r.json(); })
+        .then(function(est){
+          vistaLogin(!est.usuarios_configurados);
+        })
+        .catch(function(){ vistaLogin(false); });
+    });
+}
+arrancar();
+</script>
+</body>
+</html>

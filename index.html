@@ -46,10 +46,12 @@
   .tarjeta.vendida .cuerpo h2,.tarjeta.vendida .precio{color:var(--muted-fg);text-decoration:line-through}
   .fila-precio{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
   .precio{font-size:24px;font-weight:800;color:var(--primary)}
+  .precio small{font-size:13px;font-weight:600}
   .estado{font-size:12px;font-weight:700;padding:6px 12px;border-radius:13px;white-space:nowrap}
   .estado.disponible{background:var(--primary);color:var(--on-primary)}
   .estado.vendido{background:var(--destructive);color:#fff}
   .meta{font-size:13px;color:var(--muted-fg);margin-top:10px;line-height:1.5}
+  .link-detalles{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:var(--accent);background:none;border:none;padding:0;font-family:inherit;cursor:pointer}
   .acciones{display:flex;gap:8px;margin-top:14px}
   .acciones button{flex:1;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
   .btn-copiar{background:var(--accent);color:var(--on-accent);border:none}
@@ -57,11 +59,30 @@
   .btn-copiar:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
   .btn-compartir{width:100%;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:var(--on-primary);border:none;margin-top:8px}
   .btn-compartir:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
+  .btn-pedir{display:block;width:100%;height:48px;border-radius:10px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;background:var(--primary);color:var(--on-primary);border:none;margin-top:8px;text-align:center;line-height:48px;text-decoration:none}
+  .btn-pedir.deshabilitado{background:var(--muted);color:var(--muted-fg);pointer-events:none}
   .aviso{font-size:12px;color:var(--muted-fg);background:var(--muted);border-radius:8px;padding:10px 12px;margin-top:10px;line-height:1.5}
   .vacio{text-align:center;color:var(--muted-fg);padding:36px 16px;font-size:14px;line-height:1.6}
   footer{text-align:center;color:var(--muted-fg);font-size:12px;line-height:1.7;padding:18px 16px 8px}
   .ref{position:relative}
   .ref .chip-foto{position:absolute;left:10px;bottom:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:11px}
+  /* Modal de detalles */
+  .modal-fondo{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:flex-end;justify-content:center;z-index:50}
+  .modal-fondo.abierto{display:flex}
+  .modal{background:var(--card);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:0 0 20px}
+  .modal img.foto{display:block;width:100%;height:230px;object-fit:cover;object-position:center 30%;background:var(--muted)}
+  .modal .cuerpo h2{font-size:20px}
+  .modal h3{font-size:14px;font-weight:700;color:var(--fg);margin:14px 0 6px}
+  .modal ul{list-style:none}
+  .modal ul li{font-size:13px;color:var(--muted-fg);line-height:1.6;padding-left:14px;position:relative}
+  .modal ul li:before{content:"•";position:absolute;left:0;color:var(--primary)}
+  .tabla-prov{width:100%;border-collapse:collapse;margin-top:4px}
+  .tabla-prov th,.tabla-prov td{font-size:13px;text-align:left;padding:8px 4px;border-bottom:1px solid var(--muted)}
+  .tabla-prov th{color:var(--muted-fg);font-weight:600}
+  .tabla-prov td.precio-celda{font-weight:700;color:var(--primary);white-space:nowrap}
+  .tabla-prov .agotado-celda{color:var(--destructive);font-weight:700;font-size:12px}
+  .tabla-prov .disp-celda{color:var(--primary);font-weight:700;font-size:12px}
+  .btn-cerrar{width:100%;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--muted);color:var(--muted-fg);border:none;margin-top:8px}
 </style>
 </head>
 <body>
@@ -79,11 +100,18 @@
   Resumen diario · Se actualiza cada noche a las 8:00<br>
   La foto es referencial, no es la del vendedor.
 </footer>
+
+<div class="modal-fondo" id="modal-fondo">
+  <div class="modal" id="modal"></div>
+</div>
+
 <script>
 const GRUPOS = ["COCINAS","ENERGÍA","LAVADORAS","TV","HORNOS","NEVERAS","REFRIGERADORES","SPLITS","BOCINAS","CAJITAS","FREIDORAS","OLLAS","VENTILADORES","LICUADORAS","BASES","CAFETERAS","LUMINARIA","COLCHONES","TRANSPORTE","OTROS"];
 let ofertas = [];
 let grupoActivo = "Todos";
 let textoBusqueda = "";
+let API_URL = "";
+let WHATSAPP_PEDIDOS = "+5358559794";
 
 function fechaHoy(){
   try{
@@ -91,6 +119,66 @@ function fechaHoy(){
   }catch(e){ return ""; }
 }
 document.getElementById('fecha').textContent = fechaHoy();
+
+function llamarAPI(accion, datos){
+  datos = datos || {};
+  datos.action = accion;
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(datos),
+    redirect: 'follow'
+  }).then(function(r){ return r.json(); });
+}
+
+function normalizar(o, origen){
+  if(origen === 'api'){
+    var disp = (o.proveedores || []).filter(function(s){ return s.disponible; });
+    var primero = disp[0] || (o.proveedores || [])[0] || {};
+    var preciosDistintos = {};
+    disp.forEach(function(s){ preciosDistintos[s.precio + ' ' + s.moneda] = true; });
+    var texto = o.tipo + ' ' + o.modelo + ' / Precio: ' +
+      (o.precio_desde !== null && o.precio_desde !== undefined ? o.precio_desde + ' ' + o.moneda : 'Consultar') +
+      (primero.pago ? ' / Pago: ' + primero.pago : '') + ' / Foto de referencia';
+    return {
+      id: o.id, grupo: o.grupo, tipo: o.tipo, modelo: o.modelo,
+      caracteristicas: o.caracteristicas || '',
+      foto_url: o.foto_url || '', foto_tipo: o.foto_tipo || 'referencia',
+      estado: o.estado, precio: o.precio_desde, moneda: o.moneda,
+      multi: Object.keys(preciosDistintos).length > 1,
+      pago: primero.pago || '', garantia: primero.garantia || '',
+      domicilio: primero.domicilio || '',
+      proveedores: o.proveedores || [], textoEstado: texto
+    };
+  }
+  // origen ofertas.json (respaldo local)
+  return {
+    id: o.id, grupo: o.grupo, tipo: o.tipo, modelo: o.modelo,
+    caracteristicas: '', foto_url: o.foto || '', foto_tipo: o.fotoReferencia ? 'referencia' : 'real',
+    estado: o.estado, precio: o.precio, moneda: o.moneda,
+    multi: false, pago: o.pago || '', garantia: o.garantia || '',
+    domicilio: o.domicilio || '',
+    proveedores: [{ proveedor: '', precio: o.precio, moneda: o.moneda,
+      pago: o.pago || '', disponible: o.estado !== 'vendido',
+      domicilio: o.domicilio || '', garantia: o.garantia || '' }],
+    textoEstado: o.textoEstado || (o.tipo + ' ' + o.modelo + ' / Precio: ' + o.precio + ' ' + o.moneda)
+  };
+}
+
+function proveedorMasBarato(o){
+  var disp = (o.proveedores || []).filter(function(s){ return s.disponible; });
+  if(!disp.length) disp = o.proveedores || [];
+  if(!disp.length) return null;
+  return disp.slice().sort(function(a,b){ return a.precio - b.precio; })[0];
+}
+
+function textoPedido(o){
+  var s = proveedorMasBarato(o);
+  var t = 'Hola, quiero comprar: ' + o.tipo + ' ' + o.modelo + ' — ' + o.precio + ' ' + o.moneda;
+  if(s && s.proveedor) t += ' (Proveedor: ' + s.proveedor + ')';
+  if(o.pago) t += ' — Pago: ' + o.pago;
+  return t;
+}
 
 function pintarChips(){
   const cont = document.getElementById('chips');
@@ -123,13 +211,12 @@ function compartirWhatsApp(btn, o){
     btn.textContent = msg;
     setTimeout(function(){ btn.textContent = textoOriginal; }, 2000);
   }
-  // Intento 1: menú de compartir del teléfono con foto + texto juntos
   if(navigator.share){
     (async function(){
       try{
         let files = [];
-        if(o.foto){
-          const resp = await fetch(o.foto, {mode: 'cors'});
+        if(o.foto_url){
+          const resp = await fetch(o.foto_url, {mode: 'cors'});
           if(resp.ok){
             const blob = await resp.blob();
             const ext = (blob.type.split('/')[1] || 'jpg').split(';')[0];
@@ -149,9 +236,8 @@ function compartirWhatsApp(btn, o){
     return;
   }
   respaldo();
-  // Respaldo: WhatsApp con solo el texto; la foto se adjunta a mano
   function respaldo(){
-    if(o.foto){
+    if(o.foto_url){
       const card = btn.closest('.tarjeta');
       if(card && !card.querySelector('.aviso-foto')){
         const aviso = document.createElement('p');
@@ -164,6 +250,49 @@ function compartirWhatsApp(btn, o){
   }
 }
 
+function abrirDetalles(o){
+  const fondo = document.getElementById('modal-fondo');
+  const modal = document.getElementById('modal');
+  const caracs = (o.caracteristicas || '').split(';').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+  let filasProv = '';
+  (o.proveedores || []).forEach(function(s){
+    filasProv += '<tr><td>' + (s.proveedor || '—') + '</td>' +
+      '<td class="precio-celda">' + s.precio + ' ' + s.moneda + '</td>' +
+      '<td class="' + (s.disponible ? 'disp-celda' : 'agotado-celda') + '">' + (s.disponible ? 'DISPONIBLE' : 'AGOTADO') + '</td></tr>';
+  });
+  const fotoHtml = o.foto_url
+    ? '<img class="foto" src="' + o.foto_url + '" alt="' + o.tipo + ' ' + o.modelo + '">'
+    : '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span></div>';
+  const numero = WHATSAPP_PEDIDOS.replace(/[^0-9]/g, '');
+  modal.innerHTML = fotoHtml +
+    '<div class="cuerpo">' +
+      '<h2>' + o.tipo + ' ' + o.modelo + '</h2>' +
+      '<div class="fila-precio"><span class="precio">' + (o.multi ? '<small>desde</small> ' : '') + o.precio + ' ' + o.moneda + '</span>' +
+      '<span class="estado ' + (o.estado === 'vendido' ? 'vendido' : 'disponible') + '">' + (o.estado === 'vendido' ? 'VENDIDO' : 'DISPONIBLE') + '</span></div>' +
+      (caracs.length ? '<h3>Características</h3><ul>' + caracs.map(function(c){ return '<li>' + c + '</li>'; }).join('') + '</ul>' : '') +
+      ((o.proveedores || []).length > 1 ? '<h3>Proveedores</h3><table class="tabla-prov"><tr><th>Proveedor</th><th>Precio</th><th></th></tr>' + filasProv + '</table>' : '') +
+      (o.pago ? '<p class="meta">Pago: ' + o.pago + '</p>' : '') +
+      (o.garantia ? '<p class="meta">Garantía: ' + o.garantia + '</p>' : '') +
+      (o.domicilio ? '<p class="meta">Domicilio: ' + o.domicilio + '</p>' : '') +
+      '<p class="meta">La foto es ' + (o.foto_tipo === 'real' ? 'del vendedor' : 'referencial, no es la del vendedor') + '.</p>' +
+      (o.estado === 'vendido'
+        ? '<a class="btn-pedir deshabilitado">Agotado</a>'
+        : '<a class="btn-pedir" target="_blank" rel="noopener" href="https://wa.me/' + numero + '?text=' + encodeURIComponent(textoPedido(o)) + '">Pedir por WhatsApp</a>') +
+      (o.estado === 'vendido' ? '' : '<button class="btn-compartir" id="modal-compartir">Compartir en WhatsApp</button>') +
+      '<button class="btn-cerrar" id="modal-cerrar">Cerrar</button>' +
+    '</div>';
+  const btnC = modal.querySelector('#modal-compartir');
+  if(btnC){ btnC.onclick = function(){ compartirWhatsApp(btnC, o); }; }
+  modal.querySelector('#modal-cerrar').onclick = cerrarDetalles;
+  fondo.classList.add('abierto');
+}
+function cerrarDetalles(){
+  document.getElementById('modal-fondo').classList.remove('abierto');
+}
+document.getElementById('modal-fondo').addEventListener('click', function(e){
+  if(e.target === this) cerrarDetalles();
+});
+
 function pintarLista(){
   const lista = document.getElementById('lista');
   lista.innerHTML = "";
@@ -173,7 +302,8 @@ function pintarLista(){
     if(q && (o.tipo + " " + o.modelo + " " + o.grupo).toLowerCase().indexOf(q) === -1) return false;
     return true;
   });
-  document.getElementById('conteo').textContent = ofertas.filter(function(o){return o.estado === "disponible";}).length + (ofertas.filter(function(o){return o.estado === "disponible";}).length === 1 ? " oferta hoy" : " ofertas hoy");
+  const disp = ofertas.filter(function(o){ return o.estado === "disponible"; }).length;
+  document.getElementById('conteo').textContent = disp + (disp === 1 ? " oferta hoy" : " ofertas hoy");
   if(filtradas.length === 0){
     lista.innerHTML = '<div class="vacio">No hay ofertas en este grupo hoy.<br>El resumen se actualiza cada noche a las 8:00.</div>';
     return;
@@ -182,8 +312,8 @@ function pintarLista(){
     const card = document.createElement('article');
     card.className = 'tarjeta' + (o.estado === "vendido" ? ' vendida' : '');
     let fotoHtml = "";
-    if(o.foto){
-      fotoHtml = '<div class="ref"><img class="foto" src="' + o.foto + '" alt="' + o.tipo + ' ' + o.modelo + '" loading="lazy"><span class="chip-foto">FOTO DE REFERENCIA</span></div>';
+    if(o.foto_url){
+      fotoHtml = '<div class="ref"><img class="foto" src="' + o.foto_url + '" alt="' + o.tipo + ' ' + o.modelo + '" loading="lazy"><span class="chip-foto">' + (o.foto_tipo === 'real' ? 'FOTO DEL VENDEDOR' : 'FOTO DE REFERENCIA') + '</span></div>';
     } else {
       fotoHtml = '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span></div>';
     }
@@ -193,17 +323,22 @@ function pintarLista(){
     if(o.garantia) det.push("Garantía: " + o.garantia);
     if(o.domicilio) det.push("Domicilio " + o.domicilio);
     if(det.length) meta.push(det.join(" · "));
+    const numero = WHATSAPP_PEDIDOS.replace(/[^0-9]/g, '');
     card.innerHTML = fotoHtml +
       '<div class="cuerpo">' +
         '<h2>' + o.tipo + ' ' + o.modelo + '</h2>' +
-        '<div class="fila-precio"><span class="precio">' + o.precio + ' ' + o.moneda + '</span>' +
+        '<div class="fila-precio"><span class="precio">' + (o.multi ? '<small>desde</small> ' : '') + o.precio + ' ' + o.moneda + '</span>' +
         '<span class="estado ' + (o.estado === "vendido" ? "vendido" : "disponible") + '">' + (o.estado === "vendido" ? "VENDIDO" : "DISPONIBLE") + '</span></div>' +
         meta.map(function(m){ return '<p class="meta">' + m + '</p>'; }).join('') +
+        '<button class="link-detalles">Ver detalles →</button>' +
         '<div class="acciones">' +
           '<button class="btn-copiar"' + (o.estado === "vendido" ? ' disabled' : '') + '>Copiar texto</button>' +
           (o.estado === "vendido" ? '' : '<button class="btn-vendido">Marcar vendido</button>') +
         '</div>' +
         '<button class="btn-compartir"' + (o.estado === "vendido" ? ' disabled' : '') + '>Compartir en WhatsApp</button>' +
+        (o.estado === "vendido"
+          ? '<a class="btn-pedir deshabilitado">Agotado</a>'
+          : '<a class="btn-pedir" target="_blank" rel="noopener" href="https://wa.me/' + numero + '?text=' + encodeURIComponent(textoPedido(o)) + '">Pedir por WhatsApp</a>') +
       '</div>';
     const im = card.querySelector('img.foto');
     if(im){
@@ -215,6 +350,7 @@ function pintarLista(){
         ref.replaceWith(ph);
       };
     }
+    card.querySelector('.link-detalles').onclick = function(){ abrirDetalles(o); };
     const btnCopiar = card.querySelector('.btn-copiar');
     if(btnCopiar && o.estado !== "vendido"){
       btnCopiar.onclick = function(){ copiarTexto(btnCopiar, o.textoEstado); };
@@ -242,12 +378,36 @@ document.getElementById('buscador').addEventListener('input', function(e){
   pintarLista();
 });
 
-fetch('ofertas.json')
+function cargarDesdeJSON(){
+  return fetch('ofertas.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      ofertas = (data.ofertas || []).map(function(o){
+        return normalizar(o, (o.proveedores && o.proveedores.length) ? 'api' : 'json');
+      });
+      if(data.whatsapp_pedidos) WHATSAPP_PEDIDOS = data.whatsapp_pedidos;
+      pintarChips();
+      pintarLista();
+    });
+}
+
+// Arranque: lee config.json; si hay backend, pide el catálogo ahí;
+// si no, usa el ofertas.json local (respaldo).
+fetch('config.json')
   .then(function(r){ return r.json(); })
-  .then(function(data){
-    ofertas = data.ofertas || [];
-    pintarChips();
-    pintarLista();
+  .catch(function(){ return {}; })
+  .then(function(cfg){
+    API_URL = (cfg && cfg.api_url) || '';
+    if(!API_URL){ return cargarDesdeJSON(); }
+    return llamarAPI('catalogo', {})
+      .then(function(data){
+        if(!data || !data.ok) throw new Error('backend sin respuesta');
+        ofertas = (data.ofertas || []).map(function(o){ return normalizar(o, 'api'); });
+        if(data.whatsapp_pedidos) WHATSAPP_PEDIDOS = data.whatsapp_pedidos;
+        pintarChips();
+        pintarLista();
+      })
+      .catch(function(){ return cargarDesdeJSON(); });
   })
   .catch(function(){
     document.getElementById('lista').innerHTML = '<div class="vacio">No se pudieron cargar las ofertas.<br>Intenta recargar la página.</div>';
