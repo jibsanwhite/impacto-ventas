@@ -6,55 +6,65 @@
 <title>IMPACTO · Panel de gestión</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --primary:#15803D; --on-primary:#FFFFFF; --accent:#0369A1; --on-accent:#FFFFFF;
-    --bg:#F0FDF4; --fg:#14532D; --card:#FFFFFF; --muted:#E8F0F1; --muted-fg:#475569;
-    --border:#BBF7D0; --destructive:#DC2626; --ink:#0F172A;
+    --bg:#0A0A0A;
+    --lime:#C6FF3D;
+    --card:#141414;
+    --panel:#1A1A1A;
+    --border:#2A2A2A;
+    --text:#FFFFFF;
+    --muted:#A3A3A3;
+    --faint:#737373;
+    --red:#EF4444;
+    --red-dim:#DC2626;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);-webkit-text-size-adjust:100%}
-  header{background:var(--fg);color:var(--on-primary);padding:20px 16px 18px}
-  header h1{font-size:26px;font-weight:800;letter-spacing:.5px}
-  header p{font-size:13px;color:var(--border);margin-top:6px}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+  header{position:sticky;top:0;z-index:40;background:rgba(10,10,10,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 16px}
+  header h1{font-size:26px;font-weight:900;letter-spacing:.02em;color:var(--lime)}
+  header p{font-size:12px;color:var(--muted);margin-top:2px}
   main{padding:16px;max-width:640px;margin:0 auto}
-  .tarjeta{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-top:12px}
-  .tarjeta h2{font-size:17px;font-weight:700;margin-bottom:4px}
-  .tarjeta p.sub{font-size:13px;color:var(--muted-fg);line-height:1.5;margin-bottom:10px}
-  label{display:block;font-size:12px;font-weight:700;color:var(--muted-fg);margin-top:12px}
-  input,select,textarea{width:100%;height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--fg);outline:none;margin-top:4px}
-  textarea{height:auto;padding:10px 12px;resize:vertical}
-  input:focus,select:focus,textarea:focus{border-color:var(--primary)}
-  button{height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:none}
-  .btn-primario{background:var(--primary);color:var(--on-primary);width:100%;margin-top:16px}
-  .btn-acento{background:var(--accent);color:var(--on-accent);width:100%;margin-top:16px}
-  .btn-borde{background:var(--card);color:var(--destructive);border:1.5px solid var(--destructive);width:100%;margin-top:12px}
-  .btn-chico{height:38px;padding:0 12px;font-size:13px;width:auto;margin-top:0}
-  .btn-toggle{height:38px;padding:0 12px;font-size:13px;width:auto;margin-top:0;background:var(--primary);color:var(--on-primary)}
-  .btn-toggle.agotado{background:var(--destructive)}
-  .msg{font-size:13px;line-height:1.5;border-radius:8px;padding:10px 12px;margin-top:12px}
-  .msg.error{background:#FEF2F2;color:var(--destructive);border:1px solid #FECACA}
-  .msg.ok{background:#F0FDF4;color:var(--primary);border:1px solid var(--border)}
-  .msg.info{background:var(--muted);color:var(--muted-fg)}
+  .tarjeta{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px 16px;margin-top:12px}
+  .tarjeta h2{font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--text);margin-bottom:4px}
+  .tarjeta p.sub{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:10px}
+  label{display:block;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+  input,select,textarea{width:100%;height:48px;border:1px solid var(--border);border-radius:12px;padding:0 14px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);outline:none;margin-top:6px}
+  textarea{height:auto;padding:12px 14px;resize:vertical}
+  input::placeholder,textarea::placeholder{color:var(--faint)}
+  input:focus,select:focus,textarea:focus{border-color:var(--lime)}
+  input[type="file"]{padding:10px 12px}
+  button{height:48px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;font-family:inherit;cursor:pointer;border:none}
+  .btn-primario{background:var(--lime);color:#0A0A0A;width:100%;margin-top:18px}
+  .btn-acento{background:var(--lime);color:#0A0A0A;width:100%;margin-top:18px}
+  .btn-borde{background:transparent;color:var(--red);border:1px solid var(--red-dim);width:100%;margin-top:12px}
+  .btn-chico{height:40px;padding:0 16px;font-size:12px;width:auto;margin-top:0}
+  .btn-toggle{height:40px;padding:0 16px;font-size:12px;width:auto;margin-top:0;background:var(--lime);color:#0A0A0A}
+  .btn-toggle.agotado{background:var(--red-dim);color:#fff}
+  .msg{font-size:13px;line-height:1.5;border-radius:12px;padding:12px 14px;margin-top:12px;border:1px solid var(--border)}
+  .msg.error{background:rgba(220,38,38,.12);color:#FCA5A5;border-color:rgba(220,38,38,.45)}
+  .msg.ok{background:rgba(198,255,61,.08);color:var(--lime);border-color:var(--border)}
+  .msg.info{background:var(--panel);color:var(--muted)}
   .barra{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .barra .quien{font-size:13px;font-weight:700}
-  .prov{border-top:1px solid var(--muted);padding:12px 0}
-  .prov .linea{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .prov .linea input{width:110px;height:38px;margin-top:0}
-  .prov .nombre{font-weight:700;font-size:14px}
-  .prov .detalle{font-size:12px;color:var(--muted-fg);line-height:1.5;margin-top:4px}
-  .comision{font-size:12px;font-weight:700;color:var(--primary);background:#F0FDF4;border:1px solid var(--border);border-radius:8px;padding:4px 8px}
-  .prod-titulo{font-size:15px;font-weight:700}
-  .prod-sub{font-size:12px;color:var(--muted-fg);margin-top:2px}
+  .barra .quien{font-size:13px;font-weight:700;color:var(--text)}
+  .prov{border-top:1px solid var(--border);padding:14px 0}
+  .prov .linea{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .prov .linea input{width:110px;height:40px;margin-top:0}
+  .prov .nombre{font-weight:800;font-size:14px;color:var(--text)}
+  .prov .detalle{font-size:12px;color:var(--muted);line-height:1.55;margin-top:6px}
+  .comision{font-size:12px;font-weight:800;color:var(--lime);background:rgba(198,255,61,.08);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
+  .prod-titulo{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.01em;color:var(--text)}
+  .prod-sub{font-size:12px;color:var(--faint);margin-top:2px}
   .fila-foto{display:flex;gap:8px;margin-top:8px}
   .fila-foto input{flex:1}
   .fila-foto button{flex:0 0 auto}
-  .usuario-fila{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--muted);font-size:13px}
+  .usuario-fila{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);font-size:13px;color:var(--text)}
   .usuario-fila b{font-size:14px}
-  .rol-chip{font-size:11px;font-weight:700;background:var(--muted);border-radius:10px;padding:3px 8px;color:var(--muted-fg)}
-  footer{text-align:center;color:var(--muted-fg);font-size:12px;line-height:1.7;padding:18px 16px 8px}
-  a{color:var(--accent)}
+  .rol-chip{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--muted)}
+  footer{text-align:center;color:var(--faint);font-size:12px;line-height:1.7;padding:18px 16px 8px}
+  a{color:var(--lime)}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -182,7 +192,7 @@ function vistaPanel(datos){
   const app = document.getElementById('app');
   const esAdmin = sesion.rol === 'administrador';
   let html = '<div class="tarjeta barra"><span class="quien">Hola, ' + escapar(sesion.nombre || sesion.usuario) + ' · ' + escapar(sesion.rol) + '</span>' +
-    '<button class="btn-chico" id="salir" style="background:var(--muted);color:var(--muted-fg)">Salir</button></div>';
+    '<button class="btn-chico" id="salir" style="background:var(--panel);color:var(--text);border:1px solid var(--border)">Salir</button></div>';
   html += '<div id="msg-global"></div>';
 
   // Productos y proveedores

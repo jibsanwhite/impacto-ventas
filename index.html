@@ -6,83 +6,111 @@
 <title>IMPACTO · Catálogo para gestores</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --primary:#15803D;
-    --on-primary:#FFFFFF;
-    --accent:#0369A1;
-    --on-accent:#FFFFFF;
-    --bg:#F0FDF4;
-    --fg:#14532D;
-    --card:#FFFFFF;
-    --muted:#E8F0F1;
-    --muted-fg:#475569;
-    --border:#BBF7D0;
-    --destructive:#DC2626;
-    --ink:#0F172A;
+    --bg:#0A0A0A;
+    --lime:#C6FF3D;
+    --card:#141414;
+    --panel:#1A1A1A;
+    --border:#2A2A2A;
+    --text:#FFFFFF;
+    --muted:#A3A3A3;
+    --faint:#737373;
+    --red:#EF4444;
+    --red-dim:#DC2626;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);-webkit-text-size-adjust:100%}
-  header{background:var(--fg);color:var(--on-primary);padding:20px 16px 18px}
-  header h1{font-size:28px;font-weight:800;letter-spacing:.5px}
-  header p{font-size:13px;color:var(--border);margin-top:6px}
-  .fecha{background:var(--card);padding:11px 16px;font-size:13px;color:var(--muted-fg);border-bottom:1px solid var(--border)}
-  .fecha b{color:var(--fg)}
-  main{padding:12px 16px 24px;max-width:640px;margin:0 auto}
-  .buscador{width:100%;height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 14px;font-size:14px;font-family:inherit;background:var(--card);color:var(--fg);outline:none}
-  .buscador:focus{border-color:var(--primary)}
-  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+  header{position:sticky;top:0;z-index:40;background:rgba(10,10,10,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 16px}
+  header h1{font-size:26px;font-weight:900;letter-spacing:.02em;color:var(--lime)}
+  header p{font-size:12px;color:var(--muted);margin-top:2px}
+  .hero{max-width:640px;margin:0 auto;padding:30px 16px 22px}
+  .hero h2{font-size:42px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em;line-height:1.02}
+  .hero h2 .lima{color:var(--lime)}
+  .hero p.serif{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:500;font-size:20px;line-height:1.4;color:#D4D4D4;margin-top:12px}
+  .marquee{background:var(--lime);color:#0A0A0A;overflow:hidden;padding:9px 0}
+  .marquee-track{display:flex;width:max-content;animation:marquee 22s linear infinite}
+  .marquee-track span{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @media (prefers-reduced-motion:reduce){.marquee-track{animation:none}}
+  .fecha{background:var(--panel);padding:11px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border)}
+  .fecha b{color:var(--lime)}
+  main{padding:16px 16px 24px;max-width:640px;margin:0 auto}
+  .buscador{width:100%;height:48px;border:1px solid var(--border);border-radius:999px;padding:0 18px;font-size:15px;font-family:inherit;background:var(--card);color:var(--text);outline:none}
+  .buscador::placeholder{color:var(--faint)}
+  .buscador:focus{border-color:var(--lime)}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:14px 2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
-  .chip{flex:0 0 auto;height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--border);background:var(--card);color:var(--fg);font-size:13px;font-family:inherit;cursor:pointer}
-  .chip.activo{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
-  .tarjeta{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-top:12px}
-  .tarjeta img.foto{display:block;width:100%;height:230px;object-fit:cover;object-position:center 30%;background:var(--muted)}
-  .foto-vacia{height:170px;background:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted-fg);gap:6px}
-  .foto-vacia b{font-size:15px}
-  .foto-vacia span{font-size:12px}
-  .cuerpo{padding:14px 14px 16px}
-  .cuerpo h2{font-size:18px;font-weight:700;color:var(--fg)}
-  .tarjeta.vendida .cuerpo h2,.tarjeta.vendida .precio{color:var(--muted-fg);text-decoration:line-through}
-  .fila-precio{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
-  .precio{font-size:24px;font-weight:800;color:var(--primary)}
-  .precio small{font-size:13px;font-weight:600}
-  .estado{font-size:12px;font-weight:700;padding:6px 12px;border-radius:13px;white-space:nowrap}
-  .estado.disponible{background:var(--primary);color:var(--on-primary)}
-  .estado.vendido{background:var(--destructive);color:#fff}
-  .meta{font-size:13px;color:var(--muted-fg);margin-top:10px;line-height:1.5}
-  .link-detalles{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:var(--accent);background:none;border:none;padding:0;font-family:inherit;cursor:pointer}
-  .acciones{display:flex;gap:8px;margin-top:14px}
-  .acciones button{flex:1;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
-  .btn-copiar{background:var(--accent);color:var(--on-accent);border:none}
-  .btn-vendido{background:var(--card);color:var(--destructive);border:1.5px solid var(--destructive)}
-  .btn-copiar:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
-  .btn-compartir{width:100%;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:var(--on-primary);border:none;margin-top:8px}
-  .btn-compartir:disabled{background:var(--muted);color:var(--muted-fg);cursor:default}
-  .btn-pedir{display:block;width:100%;height:48px;border-radius:10px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;background:var(--primary);color:var(--on-primary);border:none;margin-top:8px;text-align:center;line-height:48px;text-decoration:none}
-  .btn-pedir.deshabilitado{background:var(--muted);color:var(--muted-fg);pointer-events:none}
-  .aviso{font-size:12px;color:var(--muted-fg);background:var(--muted);border-radius:8px;padding:10px 12px;margin-top:10px;line-height:1.5}
-  .vacio{text-align:center;color:var(--muted-fg);padding:36px 16px;font-size:14px;line-height:1.6}
-  footer{text-align:center;color:var(--muted-fg);font-size:12px;line-height:1.7;padding:18px 16px 8px}
+  .chip{flex:0 0 auto;height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+  .chip.activo{background:var(--lime);border-color:var(--lime);color:#0A0A0A;font-weight:800}
+  .filtro-precio{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .filtro-precio input{flex:1 1 120px;min-width:0;height:48px;border:1px solid var(--border);border-radius:999px;padding:0 14px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);outline:none}
+  .filtro-precio input::placeholder{color:var(--faint)}
+  .filtro-precio input:focus{border-color:var(--lime)}
+  .filtro-precio select{flex:1 1 80px;min-width:0;height:48px;border:1px solid var(--border);border-radius:999px;padding:0 10px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);outline:none}
+  .filtro-precio select:focus{border-color:var(--lime)}
+  .filtro-precio button{flex:0 0 auto;height:48px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13px;font-weight:800;font-family:inherit;cursor:pointer}
+  .tarjeta{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:16px}
+  .tarjeta img.foto{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;object-position:center 30%;background:var(--panel)}
+  .foto-vacia{aspect-ratio:1/1;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:6px}
+  .foto-vacia b{font-size:15px;color:var(--text)}
+  .foto-vacia span{font-size:12px;color:var(--faint)}
+  .cuerpo{padding:18px 16px 20px}
+  .cuerpo h2{font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:-.01em;line-height:1.25;color:var(--text)}
+  .tarjeta.vendida .cuerpo h2,.tarjeta.vendida .precio{color:var(--faint);text-decoration:line-through}
+  .fila-precio{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+  .precio{font-size:26px;font-weight:900;color:var(--lime)}
+  .precio small{font-size:13px;font-weight:700}
+  .estado{font-size:11px;font-weight:800;letter-spacing:.06em;padding:7px 12px;border-radius:999px;white-space:nowrap;text-transform:uppercase}
+  .estado.disponible{background:var(--lime);color:#0A0A0A}
+  .estado.vendido{background:var(--red-dim);color:#fff}
+  .meta{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.55}
+  .link-detalles{display:inline-block;margin-top:12px;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lime);background:none;border:none;padding:0;font-family:inherit;cursor:pointer}
+  .acciones{display:flex;gap:8px;margin-top:16px}
+  .acciones button{flex:1;height:48px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;font-family:inherit;cursor:pointer}
+  .btn-copiar{background:var(--panel);color:var(--text);border:1px solid var(--border)}
+  .btn-vendido{background:transparent;color:var(--red);border:1px solid var(--red-dim)}
+  .btn-copiar:disabled{background:var(--panel);color:var(--faint);border-color:var(--border);cursor:default}
+  .btn-compartir{width:100%;height:48px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;font-family:inherit;cursor:pointer;background:var(--panel);color:var(--text);border:1px solid var(--border);margin-top:8px}
+  .btn-compartir:disabled{background:var(--panel);color:var(--faint);border-color:var(--border);cursor:default}
+  .btn-pedir{display:block;width:100%;height:50px;border-radius:999px;font-size:15px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;font-family:inherit;cursor:pointer;background:var(--lime);color:#0A0A0A;border:none;margin-top:8px;text-align:center;line-height:50px;text-decoration:none}
+  .btn-pedir.deshabilitado{background:var(--panel);color:var(--faint);pointer-events:none}
+  .aviso{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.5}
+  .vacio{text-align:center;color:var(--muted);padding:36px 16px;font-size:14px;line-height:1.6}
+  footer{text-align:center;color:var(--faint);font-size:12px;line-height:1.7;padding:18px 16px 8px}
   .ref{position:relative}
-  .ref .chip-foto{position:absolute;left:10px;bottom:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:11px}
-  /* Modal de detalles */
-  .modal-fondo{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:flex-end;justify-content:center;z-index:50}
+  .ref .chip-foto{position:absolute;left:12px;bottom:12px;background:#0A0A0A;color:var(--lime);font-size:11px;font-weight:800;letter-spacing:.05em;padding:6px 12px;border-radius:999px;border:1px solid var(--border)}
+  .modal-fondo{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:flex-end;justify-content:center;z-index:50}
   .modal-fondo.abierto{display:flex}
-  .modal{background:var(--card);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:0 0 20px}
-  .modal img.foto{display:block;width:100%;height:230px;object-fit:cover;object-position:center 30%;background:var(--muted)}
+  .modal{background:var(--card);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:0 0 20px}
+  .modal img.foto{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;object-position:center 30%;background:var(--panel)}
   .modal .cuerpo h2{font-size:20px}
-  .modal h3{font-size:14px;font-weight:700;color:var(--fg);margin:14px 0 6px}
+  .modal h3{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);margin:16px 0 6px}
   .modal ul{list-style:none}
-  .modal ul li{font-size:13px;color:var(--muted-fg);line-height:1.6;padding-left:14px;position:relative}
-  .modal ul li:before{content:"•";position:absolute;left:0;color:var(--primary)}
+  .modal ul li{font-size:13px;color:var(--muted);line-height:1.6;padding-left:14px;position:relative}
+  .modal ul li:before{content:"•";position:absolute;left:0;color:var(--lime)}
   .tabla-prov{width:100%;border-collapse:collapse;margin-top:4px}
-  .tabla-prov th,.tabla-prov td{font-size:13px;text-align:left;padding:8px 4px;border-bottom:1px solid var(--muted)}
-  .tabla-prov th{color:var(--muted-fg);font-weight:600}
-  .tabla-prov td.precio-celda{font-weight:700;color:var(--primary);white-space:nowrap}
-  .tabla-prov .agotado-celda{color:var(--destructive);font-weight:700;font-size:12px}
-  .tabla-prov .disp-celda{color:var(--primary);font-weight:700;font-size:12px}
-  .btn-cerrar{width:100%;height:46px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--muted);color:var(--muted-fg);border:none;margin-top:8px}
+  .tabla-prov th,.tabla-prov td{font-size:13px;text-align:left;padding:8px 4px;border-bottom:1px solid var(--border)}
+  .tabla-prov th{color:var(--faint);font-weight:600}
+  .tabla-prov td.precio-celda{font-weight:800;color:var(--lime);white-space:nowrap}
+  .tabla-prov .agotado-celda{color:var(--red);font-weight:700;font-size:12px}
+  .tabla-prov .disp-celda{color:var(--lime);font-weight:700;font-size:12px}
+  .lista-prov{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .fila-prov{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-family:inherit;cursor:pointer;color:var(--text)}
+  .fila-prov.sel{border-color:var(--lime);background:rgba(198,255,61,.08)}
+  .fila-prov.agotado{opacity:.55;cursor:default}
+  .fila-prov-nombre{display:block;font-size:14px;font-weight:800}
+  .fila-prov-precio{display:block;font-size:18px;font-weight:900;color:var(--lime);margin-top:2px}
+  .fila-prov-meta{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .fila-prov-estado{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--red);margin-top:4px}
+  .btn-cerrar{width:100%;height:48px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;font-family:inherit;cursor:pointer;background:var(--panel);color:var(--text);border:1px solid var(--border);margin-top:8px}
+  @media (max-width:480px){
+    .hero{padding:20px 16px 16px}
+    .hero h2{font-size:34px}
+    .hero p.serif{font-size:18px}
+  }
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -90,15 +118,31 @@
   <h1>IMPACTO</h1>
   <p>Catálogo para gestores · Ofertas de la comunidad</p>
 </header>
+<section class="hero">
+  <h2>OFERTAS DE LA <span class="lima">COMUNIDAD</span></h2>
+  <p class="serif">Precios de la comunidad, para tu hogar.</p>
+</section>
+<div class="marquee" aria-hidden="true"><div class="marquee-track"><span>IMPACTO · OFERTAS DE LA COMUNIDAD · IMPACTO · OFERTAS DE LA COMUNIDAD · IMPACTO · OFERTAS DE LA COMUNIDAD · IMPACTO · OFERTAS DE LA COMUNIDAD ·&nbsp;</span><span>IMPACTO · OFERTAS DE LA COMUNIDAD · IMPACTO · OFERTAS DE LA COMUNIDAD · IMPACTO · OFERTAS DE LA COMUNIDAD · IMPACTO · OFERTAS DE LA COMUNIDAD ·&nbsp;</span></div></div>
+
 <div class="fecha"><span id="fecha">Hoy</span> · <b id="conteo"></b></div>
 <main>
   <input class="buscador" id="buscador" type="search" placeholder="Buscar producto…" aria-label="Buscar producto">
+  <div class="filtro-precio">
+    <input id="filtro-min" type="number" min="0" step="1" inputmode="numeric" placeholder="Precio mín." aria-label="Precio mínimo">
+    <input id="filtro-max" type="number" min="0" step="1" inputmode="numeric" placeholder="Precio máx." aria-label="Precio máximo">
+    <select id="filtro-moneda" aria-label="Moneda del filtro de precio">
+      <option value="Todas">Todas</option>
+      <option value="USD">USD</option>
+      <option value="MN">MN</option>
+    </select>
+    <button id="filtro-limpiar" type="button">Limpiar</button>
+  </div>
   <div class="chips" id="chips"></div>
   <div id="lista"></div>
 </main>
 <footer>
   Resumen diario · Se actualiza cada noche a las 8:00<br>
-  La foto es referencial, no es la del vendedor.
+  Las fotos con el sello FOTO DEL VENDEDOR son del vendedor; las demás son de referencia.
 </footer>
 
 <div class="modal-fondo" id="modal-fondo">
@@ -172,12 +216,20 @@ function proveedorMasBarato(o){
   return disp.slice().sort(function(a,b){ return a.precio - b.precio; })[0];
 }
 
-function textoPedido(o){
-  var s = proveedorMasBarato(o);
-  var t = 'Hola, quiero comprar: ' + o.tipo + ' ' + o.modelo + ' — ' + o.precio + ' ' + o.moneda;
-  if(s && s.proveedor) t += ' (Proveedor: ' + s.proveedor + ')';
-  if(o.pago) t += ' — Pago: ' + o.pago;
+function textoPedido(o, prov){
+  var s = prov || proveedorMasBarato(o);
+  var precio = s ? s.precio : o.precio;
+  var moneda = s ? s.moneda : o.moneda;
+  var t = 'Hola, quiero comprar: ' + o.tipo + ' ' + o.modelo + ' — ' + precio + ' ' + moneda;
+  if(s && s.proveedor) t += ' (Proveedor: ' + s.proveedor + ' — ' + s.precio + ' ' + s.moneda + ')';
+  var pago = (s && s.pago) ? s.pago : o.pago;
+  if(pago) t += ' — Pago: ' + pago;
   return t;
+}
+
+function textoEstadoPara(o, s){
+  return o.tipo + ' ' + o.modelo + ' / Precio: ' + s.precio + ' ' + s.moneda +
+    (s.pago ? ' / Pago: ' + s.pago : '') + ' / Foto de referencia';
 }
 
 function pintarChips(){
@@ -254,6 +306,26 @@ function abrirDetalles(o){
   const fondo = document.getElementById('modal-fondo');
   const modal = document.getElementById('modal');
   const caracs = (o.caracteristicas || '').split(';').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+  const provs = o.proveedores || [];
+  const disp = provs.filter(function(s){ return s.disponible; });
+  const conSelector = provs.length > 1 && disp.length > 0 && o.estado !== 'vendido';
+  let sel = proveedorMasBarato(o);
+  let selIdx = provs.indexOf(sel);
+  let selectorHtml = '';
+  if(conSelector){
+    selectorHtml = '<h3>Elige el proveedor</h3><div class="lista-prov">' + provs.map(function(s, i){
+      const meta = [];
+      if(s.pago) meta.push('Pago: ' + s.pago);
+      if(s.garantia) meta.push('Garantía: ' + s.garantia);
+      if(s.domicilio) meta.push('Domicilio: ' + s.domicilio);
+      return '<button type="button" class="fila-prov' + (s.disponible ? '' : ' agotado') + (i === selIdx ? ' sel' : '') + '" data-prov-idx="' + i + '"' + (s.disponible ? '' : ' disabled') + '>' +
+        '<span class="fila-prov-nombre">' + (s.proveedor || '—') + '</span>' +
+        '<span class="fila-prov-precio">' + s.precio + ' ' + s.moneda + '</span>' +
+        (meta.length ? '<span class="fila-prov-meta">' + meta.join(' · ') + '</span>' : '') +
+        (s.disponible ? '' : '<span class="fila-prov-estado">AGOTADO</span>') +
+      '</button>';
+    }).join('') + '</div>';
+  }
   let filasProv = '';
   (o.proveedores || []).forEach(function(s){
     filasProv += '<tr><td>' + (s.proveedor || '—') + '</td>' +
@@ -262,25 +334,43 @@ function abrirDetalles(o){
   });
   const fotoHtml = o.foto_url
     ? '<img class="foto" src="' + o.foto_url + '" alt="' + o.tipo + ' ' + o.modelo + '">'
-    : '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span></div>';
+    : '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Foto pendiente — el vendedor aún no manda la suya</span></div>';
   const numero = WHATSAPP_PEDIDOS.replace(/[^0-9]/g, '');
   modal.innerHTML = fotoHtml +
     '<div class="cuerpo">' +
       '<h2>' + o.tipo + ' ' + o.modelo + '</h2>' +
-      '<div class="fila-precio"><span class="precio">' + (o.multi ? '<small>desde</small> ' : '') + o.precio + ' ' + o.moneda + '</span>' +
+      '<div class="fila-precio"><span class="precio" id="modal-precio">' + (conSelector && sel ? sel.precio + ' ' + sel.moneda : (o.multi ? '<small>desde</small> ' : '') + o.precio + ' ' + o.moneda) + '</span>' +
       '<span class="estado ' + (o.estado === 'vendido' ? 'vendido' : 'disponible') + '">' + (o.estado === 'vendido' ? 'VENDIDO' : 'DISPONIBLE') + '</span></div>' +
       (caracs.length ? '<h3>Características</h3><ul>' + caracs.map(function(c){ return '<li>' + c + '</li>'; }).join('') + '</ul>' : '') +
-      ((o.proveedores || []).length > 1 ? '<h3>Proveedores</h3><table class="tabla-prov"><tr><th>Proveedor</th><th>Precio</th><th></th></tr>' + filasProv + '</table>' : '') +
-      (o.pago ? '<p class="meta">Pago: ' + o.pago + '</p>' : '') +
-      (o.garantia ? '<p class="meta">Garantía: ' + o.garantia + '</p>' : '') +
-      (o.domicilio ? '<p class="meta">Domicilio: ' + o.domicilio + '</p>' : '') +
+      (conSelector ? selectorHtml : ((o.proveedores || []).length > 1 ? '<h3>Proveedores</h3><table class="tabla-prov"><tr><th>Proveedor</th><th>Precio</th><th></th></tr>' + filasProv + '</table>' : '')) +
+      (conSelector ? '' : (o.pago ? '<p class="meta">Pago: ' + o.pago + '</p>' : '')) +
+      (conSelector ? '' : (o.garantia ? '<p class="meta">Garantía: ' + o.garantia + '</p>' : '')) +
+      (conSelector ? '' : (o.domicilio ? '<p class="meta">Domicilio: ' + o.domicilio + '</p>' : '')) +
       '<p class="meta">La foto es ' + (o.foto_tipo === 'real' ? 'del vendedor' : 'referencial, no es la del vendedor') + '.</p>' +
       (o.estado === 'vendido'
         ? '<a class="btn-pedir deshabilitado">Agotado</a>'
-        : '<a class="btn-pedir" target="_blank" rel="noopener" href="https://wa.me/' + numero + '?text=' + encodeURIComponent(textoPedido(o)) + '">Pedir por WhatsApp</a>') +
+        : '<a class="btn-pedir" id="modal-pedir" target="_blank" rel="noopener" href="https://wa.me/' + numero + '?text=' + encodeURIComponent(textoPedido(o, sel)) + '">Pedir por WhatsApp</a>') +
       (o.estado === 'vendido' ? '' : '<button class="btn-compartir" id="modal-compartir">Compartir en WhatsApp</button>') +
       '<button class="btn-cerrar" id="modal-cerrar">Cerrar</button>' +
     '</div>';
+  if(conSelector && sel){ o.textoEstado = textoEstadoPara(o, sel); }
+  if(conSelector){
+    modal.querySelectorAll('.fila-prov').forEach(function(b){
+      b.onclick = function(){
+        const idx = Number(b.getAttribute('data-prov-idx'));
+        sel = provs[idx];
+        selIdx = idx;
+        modal.querySelectorAll('.fila-prov').forEach(function(x){
+          x.classList.toggle('sel', Number(x.getAttribute('data-prov-idx')) === idx);
+        });
+        const pe = modal.querySelector('#modal-precio');
+        if(pe) pe.textContent = sel.precio + ' ' + sel.moneda;
+        const link = modal.querySelector('#modal-pedir');
+        if(link) link.href = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(textoPedido(o, sel));
+        o.textoEstado = textoEstadoPara(o, sel);
+      };
+    });
+  }
   const btnC = modal.querySelector('#modal-compartir');
   if(btnC){ btnC.onclick = function(){ compartirWhatsApp(btnC, o); }; }
   modal.querySelector('#modal-cerrar').onclick = cerrarDetalles;
@@ -293,6 +383,24 @@ document.getElementById('modal-fondo').addEventListener('click', function(e){
   if(e.target === this) cerrarDetalles();
 });
 
+function pasaFiltroPrecio(o){
+  const monedaF = document.getElementById('filtro-moneda').value;
+  if(monedaF === 'Todas') return true;
+  if(o.moneda !== monedaF) return false;
+  if(o.precio === null || o.precio === undefined) return false;
+  const minV = document.getElementById('filtro-min').value.trim();
+  const maxV = document.getElementById('filtro-max').value.trim();
+  const min = minV === '' ? null : Number(minV);
+  const max = maxV === '' ? null : Number(maxV);
+  if(min !== null && !isNaN(min) && o.precio < min) return false;
+  if(max !== null && !isNaN(max) && o.precio > max) return false;
+  return true;
+}
+
+function filtroPrecioActivo(){
+  return document.getElementById('filtro-moneda').value !== 'Todas';
+}
+
 function pintarLista(){
   const lista = document.getElementById('lista');
   lista.innerHTML = "";
@@ -300,12 +408,15 @@ function pintarLista(){
   const filtradas = ofertas.filter(function(o){
     if(grupoActivo !== "Todos" && o.grupo !== grupoActivo) return false;
     if(q && (o.tipo + " " + o.modelo + " " + o.grupo).toLowerCase().indexOf(q) === -1) return false;
+    if(!pasaFiltroPrecio(o)) return false;
     return true;
   });
   const disp = ofertas.filter(function(o){ return o.estado === "disponible"; }).length;
-  document.getElementById('conteo').textContent = disp + (disp === 1 ? " oferta hoy" : " ofertas hoy");
+  document.getElementById('conteo').textContent = disp + (disp === 1 ? " oferta disponible" : " ofertas disponibles");
   if(filtradas.length === 0){
-    lista.innerHTML = '<div class="vacio">No hay ofertas en este grupo hoy.<br>El resumen se actualiza cada noche a las 8:00.</div>';
+    lista.innerHTML = filtroPrecioActivo()
+      ? '<div class="vacio">Ninguna oferta en ese rango de precio.<br>Prueba con otro rango o limpia el filtro.</div>'
+      : '<div class="vacio">No hay ofertas en este grupo hoy.<br>El resumen se actualiza cada noche a las 8:00.</div>';
     return;
   }
   filtradas.forEach(function(o){
@@ -315,14 +426,14 @@ function pintarLista(){
     if(o.foto_url){
       fotoHtml = '<div class="ref"><img class="foto" src="' + o.foto_url + '" alt="' + o.tipo + ' ' + o.modelo + '" loading="lazy"><span class="chip-foto">' + (o.foto_tipo === 'real' ? 'FOTO DEL VENDEDOR' : 'FOTO DE REFERENCIA') + '</span></div>';
     } else {
-      fotoHtml = '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span></div>';
+      fotoHtml = '<div class="foto-vacia"><b>FOTO DE REFERENCIA</b><span>Foto pendiente — el vendedor aún no manda la suya</span></div>';
     }
     const meta = [];
     if(o.pago) meta.push("Pago: " + o.pago);
     const det = [];
     if(o.garantia) det.push("Garantía: " + o.garantia);
     if(o.domicilio) det.push("Domicilio " + o.domicilio);
-    if(det.length) meta.push(det.join(" · "));
+    det.forEach(function(d){ meta.push(d); });
     const numero = WHATSAPP_PEDIDOS.replace(/[^0-9]/g, '');
     card.innerHTML = fotoHtml +
       '<div class="cuerpo">' +
@@ -330,7 +441,7 @@ function pintarLista(){
         '<div class="fila-precio"><span class="precio">' + (o.multi ? '<small>desde</small> ' : '') + o.precio + ' ' + o.moneda + '</span>' +
         '<span class="estado ' + (o.estado === "vendido" ? "vendido" : "disponible") + '">' + (o.estado === "vendido" ? "VENDIDO" : "DISPONIBLE") + '</span></div>' +
         meta.map(function(m){ return '<p class="meta">' + m + '</p>'; }).join('') +
-        '<button class="link-detalles">Ver detalles →</button>' +
+        '<button class="link-detalles">Ver detalles</button>' +
         '<div class="acciones">' +
           '<button class="btn-copiar"' + (o.estado === "vendido" ? ' disabled' : '') + '>Copiar texto</button>' +
           (o.estado === "vendido" ? '' : '<button class="btn-vendido">Marcar vendido</button>') +
@@ -346,7 +457,7 @@ function pintarLista(){
         const ref = im.closest('.ref');
         const ph = document.createElement('div');
         ph.className = 'foto-vacia';
-        ph.innerHTML = '<b>FOTO DE REFERENCIA</b><span>Aquí va la foto del producto</span>';
+        ph.innerHTML = '<b>FOTO DE REFERENCIA</b><span>Foto pendiente — el vendedor aún no manda la suya</span>';
         ref.replaceWith(ph);
       };
     }
@@ -375,6 +486,16 @@ function pintarLista(){
 
 document.getElementById('buscador').addEventListener('input', function(e){
   textoBusqueda = e.target.value;
+  pintarLista();
+});
+
+document.getElementById('filtro-min').addEventListener('input', pintarLista);
+document.getElementById('filtro-max').addEventListener('input', pintarLista);
+document.getElementById('filtro-moneda').addEventListener('change', pintarLista);
+document.getElementById('filtro-limpiar').addEventListener('click', function(){
+  document.getElementById('filtro-min').value = '';
+  document.getElementById('filtro-max').value = '';
+  document.getElementById('filtro-moneda').value = 'Todas';
   pintarLista();
 });
 
