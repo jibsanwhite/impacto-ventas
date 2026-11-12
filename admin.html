@@ -36,6 +36,7 @@
   input:focus,select:focus,textarea:focus{border-color:var(--lime)}
   input[type="file"]{padding:10px 12px}
   button{height:48px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;font-family:inherit;cursor:pointer;border:none}
+  button:disabled{opacity:.55;cursor:default}
   .btn-primario{background:var(--lime);color:#0A0A0A;width:100%;margin-top:18px}
   .btn-acento{background:var(--lime);color:#0A0A0A;width:100%;margin-top:18px}
   .btn-borde{background:transparent;color:var(--red);border:1px solid var(--red-dim);width:100%;margin-top:12px}
@@ -65,6 +66,18 @@
   footer{text-align:center;color:var(--faint);font-size:12px;line-height:1.7;padding:18px 16px 8px}
   a{color:var(--lime)}
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+  .pg-foto{width:100%;max-width:280px;border-radius:16px;border:1px solid var(--border);display:block;margin-top:8px}
+  .pg-mini{width:56px;height:56px;object-fit:cover;border-radius:12px;border:2px solid var(--border);cursor:pointer;padding:0}
+  .pg-mini.elegida{border-color:var(--lime)}
+  .pg-minis{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .pg-origen{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--lime)}
+  .pg-prod{border-top:1px solid var(--border);padding:16px 0}
+  .pg-prov{border:1px solid var(--border);border-radius:16px;padding:12px;margin-top:10px;background:var(--panel)}
+  .pg-prov .linea{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .pg-prov .linea input,.pg-prov .linea select{flex:1;min-width:100px;height:40px;margin-top:0}
+  .pg-prov label{margin-top:8px}
+  .pg-nombre{font-weight:800;font-size:14px;color:var(--text)}
+  .pg-falta{font-size:12px;font-weight:800;color:#FCA5A5}
 </style>
 </head>
 <body>
@@ -130,6 +143,149 @@ function mensaje(cont, tipo, texto){
   d.className = 'msg ' + tipo;
   d.textContent = texto;
   cont.appendChild(d);
+}
+
+let vistaPegar = null; // ofertas parseadas en la vista previa (con su foto)
+let avisoTrasRecarga = ''; // resumen de la sincronización, se muestra tras recargar el panel
+
+function pgOrigenTexto(foto){
+  if(!foto) return 'Sin foto';
+  if(foto.origen === 'drive') return 'Drive · vendedor';
+  if(foto.origen === 'internet') return 'Internet · referencia';
+  return 'Sin foto';
+}
+
+function renderVistaPegar(){
+  const vista = document.getElementById('pg-vista');
+  if(!vista) return;
+  if(!vistaPegar || !vistaPegar.length){ vista.innerHTML = ''; return; }
+  let html = '';
+  vistaPegar.forEach(function(of, i){
+    const foto = of.foto || {};
+    html += '<div class="pg-prod" data-pg-prod="' + i + '">' +
+      '<label>Tipo<input data-pg="tipo" value="' + escapar(of.tipo || '') + '"></label>' +
+      '<label>Modelo<input data-pg="modelo" value="' + escapar(of.modelo || '') + '"></label>' +
+      '<label>Características<textarea data-pg="caracteristicas" rows="2">' + escapar(of.caracteristicas || '') + '</textarea></label>';
+    html += '<label>Foto <span class="pg-origen">' + escapar(pgOrigenTexto(foto)) + '</span></label>';
+    if(foto.foto_url){
+      html += '<img class="pg-foto" src="' + escapar(foto.foto_url) + '" alt="Foto del producto">';
+    }
+    if(foto.detalle) html += '<p class="sub">' + escapar(foto.detalle) + '</p>';
+    if(foto.candidatas && foto.candidatas.length){
+      html += '<div class="pg-minis">' + foto.candidatas.map(function(c){
+        const elegida = foto.drive_id && c.drive_id === foto.drive_id;
+        return '<img class="pg-mini' + (elegida ? ' elegida' : '') + '" src="' + escapar(c.foto_url) + '" data-pg-foto="' + escapar(c.drive_id) + '" data-pg-nombre="' + escapar(c.nombre) + '" alt="' + escapar(c.nombre) + '">';
+      }).join('') + '</div>';
+    }
+    if(foto.origen === 'ninguno'){
+      html += '<div class="fila-foto"><button class="btn-chico btn-toggle" data-pg-buscar-foto="' + i + '">Buscar foto de referencia</button></div>';
+    }
+    html += '<label>o pega la dirección de una foto<input data-pg="foto_url" placeholder="https://…" value="' + escapar(foto.origen === 'internet' ? foto.foto_url : '') + '"></label>';
+    (of.proveedores || []).forEach(function(sp, j){
+      html += '<div class="pg-prov" data-pg-prov="' + j + '">' +
+        '<div class="pg-nombre">' + escapar(sp.proveedor || '') + '</div>' +
+        (sp.precio ? '' : '<div class="pg-falta">Falta el precio: escríbelo antes de registrar.</div>') +
+        '<div class="linea"><input type="number" min="0" step="1" data-pg="precio" value="' + (sp.precio || '') + '" aria-label="Precio"> ' +
+        '<select data-pg="moneda"><option' + (sp.moneda === 'USD' ? ' selected' : '') + '>USD</option><option' + (sp.moneda === 'MN' ? ' selected' : '') + '>MN</option></select></div>' +
+        '<label>Comisión del gestor</label><div class="linea"><input type="number" min="0" step="1" data-pg="comision" value="' + (sp.comision || 0) + '" aria-label="Comisión"> ' +
+        '<select data-pg="comision_moneda"><option' + (sp.comision_moneda === 'MN' ? ' selected' : '') + '>MN</option><option' + (sp.comision_moneda === 'USD' ? ' selected' : '') + '>USD</option></select></div>' +
+        '<label>Garantía<input data-pg="garantia" value="' + escapar(sp.garantia || '') + '" placeholder="ej. 7 días"></label>' +
+        '<label>Domicilio<input data-pg="domicilio" value="' + escapar(sp.domicilio || '') + '"></label>' +
+        '<label>Pago aceptado<input data-pg="pago" value="' + escapar(sp.pago || '') + '"></label>' +
+      '</div>';
+    });
+    html += '</div>';
+  });
+  vista.innerHTML = html;
+  vista.querySelectorAll('[data-pg-foto]').forEach(function(img){
+    img.onclick = function(){
+      recogerVistaPegar();
+      const bloque = img.closest('[data-pg-prod]');
+      const i = Number(bloque.getAttribute('data-pg-prod'));
+      const of = vistaPegar[i];
+      of.foto = {
+        foto_url: img.getAttribute('src'), foto_tipo: 'vendedor',
+        origen: 'drive', drive_id: img.getAttribute('data-pg-foto'),
+        detalle: 'Elegida de Drive: ' + img.getAttribute('data-pg-nombre'),
+        candidatas: (of.foto && of.foto.candidatas) || []
+      };
+      renderVistaPegar();
+    };
+  });
+  vista.querySelectorAll('[data-pg-buscar-foto]').forEach(function(btn){
+    btn.onclick = function(){
+      recogerVistaPegar();
+      const i = Number(btn.getAttribute('data-pg-buscar-foto'));
+      const of = vistaPegar[i];
+      const global = document.getElementById('msg-global');
+      mensaje(global, 'info', 'Buscando una foto de referencia en internet…');
+      llamarAPI('foto_automatica', {grupo: of.grupo, tipo: of.tipo, modelo: of.modelo}).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se encontró foto.'); return; }
+        of.foto = r;
+        renderVistaPegar();
+        mensaje(global, r.origen === 'internet' ? 'ok' : 'info', r.detalle || 'Foto actualizada.');
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+  });
+  vista.querySelectorAll('[data-pg="foto_url"]').forEach(function(inp){
+    inp.onchange = function(){
+      recogerVistaPegar();
+      const bloque = inp.closest('[data-pg-prod]');
+      const i = Number(bloque.getAttribute('data-pg-prod'));
+      const url = inp.value.trim();
+      if(!url) return;
+      vistaPegar[i].foto = {
+        foto_url: url, foto_tipo: 'referencia', origen: 'internet',
+        detalle: 'Foto pegada a mano (referencia).',
+        candidatas: (vistaPegar[i].foto && vistaPegar[i].foto.candidatas) || []
+      };
+      renderVistaPegar();
+    };
+  });
+}
+
+function recogerVistaPegar(){
+  if(!vistaPegar) return [];
+  const vista = document.getElementById('pg-vista');
+  if(!vista) return vistaPegar;
+  vista.querySelectorAll('[data-pg-prod]').forEach(function(bloque){
+    const i = Number(bloque.getAttribute('data-pg-prod'));
+    const of = vistaPegar[i];
+    if(!of) return;
+    bloque.querySelectorAll('[data-pg="tipo"],[data-pg="modelo"],[data-pg="caracteristicas"]').forEach(function(inp){
+      of[inp.getAttribute('data-pg')] = inp.value.trim();
+    });
+    const urlInput = bloque.querySelector('[data-pg="foto_url"]');
+    if(urlInput && urlInput.value.trim() && (!of.foto || of.foto.origen !== 'drive')){
+      of.foto = { foto_url: urlInput.value.trim(), foto_tipo: 'referencia', origen: 'internet', detalle: 'Foto pegada a mano (referencia).', candidatas: (of.foto && of.foto.candidatas) || [] };
+    }
+    bloque.querySelectorAll('[data-pg-prov]').forEach(function(pb){
+      const j = Number(pb.getAttribute('data-pg-prov'));
+      const sp = of.proveedores[j];
+      if(!sp) return;
+      sp.precio = Number(pb.querySelector('[data-pg="precio"]').value) || 0;
+      sp.moneda = pb.querySelector('[data-pg="moneda"]').value;
+      sp.moneda_explicita = true;
+      sp.comision = Number(pb.querySelector('[data-pg="comision"]').value) || 0;
+      sp.comision_moneda = pb.querySelector('[data-pg="comision_moneda"]').value;
+      sp.comision_moneda_explicita = true;
+      sp.garantia = pb.querySelector('[data-pg="garantia"]').value.trim();
+      sp.domicilio = pb.querySelector('[data-pg="domicilio"]').value.trim();
+      sp.pago = pb.querySelector('[data-pg="pago"]').value.trim();
+    });
+  });
+  // La foto de Drive va directa; la de internet se descarga a Drive al
+  // registrar (foto_descargar).
+  return vistaPegar.map(function(of){
+    const foto = of.foto || {};
+    return {
+      grupo: of.grupo, tipo: of.tipo, modelo: of.modelo,
+      caracteristicas: of.caracteristicas,
+      foto_url: foto.foto_url || '', foto_tipo: foto.foto_tipo || 'referencia',
+      foto_origen: foto.origen || 'ninguno', foto_descargar: foto.origen === 'internet',
+      proveedores: of.proveedores || []
+    };
+  });
 }
 
 function vistaSinBackend(){
@@ -201,6 +357,24 @@ function vistaPanel(datos){
       ? 'Marca agotado o disponible por proveedor. El cliente ve "desde" el precio más bajo y el producto queda agotado cuando ningún proveedor lo tiene.'
       : 'Estos son tus proveedores. Puedes cambiar el precio y marcar agotado o disponible. Tu comisión la ves solo tú.') + '</p>' +
     '<div id="lista-productos"></div></div>';
+
+  // Pegar ofertas (solo administradores)
+  if(esAdmin){
+    html += '<div class="tarjeta"><h2>Pegar ofertas</h2>' +
+      '<p class="sub">Pega los mensajes del grupo (uno o varios, con su encabezado [fecha hora] Nombre:) y se dividen solos en producto, proveedores, precios, comisión, domicilio, garantía y pago. La foto se elige sola de Drive y, si no hay, se busca una de referencia en internet. Revisa la vista previa, corrige lo que haga falta y registra.</p>' +
+      '<label>Grupo<select id="pg-grupo">' + GRUPOS.map(function(g){ return '<option>' + g + '</option>'; }).join('') + '</select></label>' +
+      '<label>Mensajes<textarea id="pg-texto" rows="8" placeholder="[8/11 7:15 p. m.] Nathali: Proveedor de Santiago/🍋\n\nProducto: Ventilador recargable Olmco F6\n\nPrecio: 55 USD\n\nComisión: 1000 MN"></textarea></label>' +
+      '<button class="btn-primario" id="pg-procesar">Procesar mensajes</button>' +
+      '<div id="pg-vista"></div>' +
+      '<button class="btn-primario" id="pg-registrar" style="display:none">Registrar ofertas</button></div>';
+  }
+
+  // Sincronizar ahora (solo administradores)
+  if(esAdmin){
+    html += '<div class="tarjeta"><h2>Sincronizar ahora</h2>' +
+      '<p class="sub">Pone foto a todos los productos que no tienen: busca en Drive (carpeta Fotos de su categoría) y, si no hay, pone una de referencia de internet. Los productos que ya tienen foto no se tocan. No cambia precios, proveedores ni estados. La página pública lee la hoja en vivo, así que los cambios se ven enseguida.</p>' +
+      '<button class="btn-primario" id="btn-sincronizar">Sincronizar ahora</button></div>';
+  }
 
   // Foto
   if(esAdmin){
@@ -422,6 +596,75 @@ function vistaPanel(datos){
         cargarPanel();
       }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
     };
+
+    // Pegar ofertas
+    document.getElementById('pg-procesar').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const texto = document.getElementById('pg-texto').value.trim();
+      const grupo = document.getElementById('pg-grupo').value;
+      const vista = document.getElementById('pg-vista');
+      if(!texto){ mensaje(global, 'error', 'Pega primero los mensajes.'); return; }
+      mensaje(global, 'info', 'Procesando mensajes…');
+      llamarAPI('parse_ofertas', {texto: texto, grupo: grupo}).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudieron procesar los mensajes.'); return; }
+        vistaPegar = r.ofertas || [];
+        if(!vistaPegar.length){
+          mensaje(global, 'error', 'No se encontró ningún producto en el texto. Revisa el formato.');
+          vista.innerHTML = '';
+          document.getElementById('pg-registrar').style.display = 'none';
+          return;
+        }
+        let aviso = r.mensajes + ' mensaje(s) · ' + vistaPegar.length + ' producto(s). Revisa y corrige antes de registrar.';
+        if(r.sin_producto && r.sin_producto.length) aviso += ' ' + r.sin_producto.length + ' mensaje(s) sin producto no se procesaron.';
+        mensaje(global, 'ok', aviso);
+        renderVistaPegar();
+        document.getElementById('pg-registrar').style.display = '';
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+
+    document.getElementById('pg-registrar').onclick = function(){
+      const global = document.getElementById('msg-global');
+      if(!vistaPegar || !vistaPegar.length) return;
+      const ofertas = recogerVistaPegar();
+      mensaje(global, 'info', 'Registrando ofertas…');
+      llamarAPI('registrar_ofertas', {ofertas: ofertas}).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudieron registrar las ofertas.'); return; }
+        let t = 'Registrado: ' + r.productos_creados + ' producto(s) nuevo(s), ' + r.productos_actualizados + ' actualizado(s), ' + r.proveedores_creados + ' proveedor(es) nuevo(s), ' + r.proveedores_actualizados + ' actualizado(s).';
+        if(r.omitidos && r.omitidos.length) t += ' Omitidos: ' + r.omitidos.map(function(o){ return o.producto + (o.proveedor ? ' · ' + o.proveedor : '') + ' (' + o.motivo + ')'; }).join('; ');
+        mensaje(global, 'ok', t);
+        vistaPegar = null;
+        document.getElementById('pg-vista').innerHTML = '';
+        document.getElementById('pg-registrar').style.display = 'none';
+        document.getElementById('pg-texto').value = '';
+        cargarPanel();
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+    };
+
+    // Sincronizar ahora
+    document.getElementById('btn-sincronizar').onclick = function(){
+      const global = document.getElementById('msg-global');
+      const btn = document.getElementById('btn-sincronizar');
+      btn.disabled = true;
+      btn.textContent = 'Sincronizando…';
+      mensaje(global, 'info', 'Sincronizando fotos de Drive e internet…');
+      llamarAPI('sincronizar_ahora', {}).then(function(r){
+        if(!r.ok){
+          mensaje(global, 'error', r.error || 'No se pudo sincronizar.');
+          btn.disabled = false;
+          btn.textContent = 'Sincronizar ahora';
+          return;
+        }
+        let t = r.revisados + ' producto(s) revisado(s) · ' + r.fotos_drive + ' foto(s) de Drive · ' + r.fotos_internet + ' de internet · ' + r.sin_foto + ' sin foto';
+        if(r.etiquetas_reparadas) t += ' · ' + r.etiquetas_reparadas + ' etiqueta(s) reparada(s)';
+        if(r.errores && r.errores.length) t += '. Sin foto: ' + r.errores.map(function(e){ return e.producto + ' (' + e.motivo + ')'; }).join('; ');
+        avisoTrasRecarga = t;
+        cargarPanel();
+      }).catch(function(){
+        mensaje(global, 'error', 'No se pudo hablar con el backend.');
+        btn.disabled = false;
+        btn.textContent = 'Sincronizar ahora';
+      });
+    };
   }
 }
 
@@ -434,6 +677,11 @@ function cargarPanel(){
       return;
     }
     vistaPanel(r);
+    if(avisoTrasRecarga){
+      const global = document.getElementById('msg-global');
+      if(global) mensaje(global, 'ok', avisoTrasRecarga);
+      avisoTrasRecarga = '';
+    }
   }).catch(function(){
     app.innerHTML = '<div class="tarjeta"><h2>Sin conexión con el backend</h2><p class="sub">No se pudo hablar con el Apps Script. Revisa la conexión e inténtalo de nuevo.</p></div>';
   });
