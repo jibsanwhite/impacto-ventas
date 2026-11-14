@@ -7,3 +7,8 @@ ofertas.json
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Credenciales - NUNCA subir (el JSON de la cuenta de servicio vive en
+# /opt/impacto-tools/service-account.json, fuera del repo)
+service-account*.json
+.env
