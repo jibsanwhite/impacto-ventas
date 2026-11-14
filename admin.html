@@ -83,6 +83,10 @@
   .pg-prov label{margin-top:8px}
   .pg-nombre{font-weight:800;font-size:14px;color:var(--text)}
   .pg-falta{font-size:12px;font-weight:800;color:#FCA5A5}
+  .prod-foto{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .prod-foto .sin-foto{width:56px;height:56px;border-radius:12px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--faint);text-align:center;padding:4px}
+  .cf-editor{margin-top:10px;border:1px solid var(--border);border-radius:16px;padding:12px;background:var(--panel)}
+  .cf-editor .fila-foto{margin-top:10px}
 </style>
 </head>
 <body>
@@ -151,6 +155,8 @@ function mensaje(cont, tipo, texto){
 }
 
 let vistaPegar = null; // ofertas parseadas en la vista previa (con su foto)
+let productosPorId = {}; // productos del panel por id (para el editor de foto)
+let editoresFoto = {}; // pid -> {abierto, cargando, datos, mostrarUsadas}
 let avisoTrasRecarga = ''; // resumen de la sincronización, se muestra tras recargar el panel
 
 function pgOrigenTexto(foto){
@@ -158,6 +164,14 @@ function pgOrigenTexto(foto){
   if(foto.origen === 'drive') return 'Drive · vendedor';
   if(foto.origen === 'internet') return 'Internet · referencia';
   return 'Sin foto';
+}
+function fotoOrigenDeUrl(url){
+  if(!url) return '';
+  return String(url).indexOf('drive.google.com') !== -1 ? 'drive' : 'internet';
+}
+function idDriveDeUrl(url){
+  const m = String(url || '').match(/[?&]id=([A-Za-z0-9_-]+)/);
+  return m ? m[1] : '';
 }
 
 function renderVistaPegar(){
@@ -345,6 +359,138 @@ function recogerVistaPegar(){
   });
 }
 
+// ---- Cambiar foto de un producto ya registrado ----
+// Abre el selector (mismo que en Pegar ofertas: miniaturas de Drive,
+// fotos ya usadas, referencias de internet y URL manual) debajo del
+// producto. Elegir una foto la guarda con la acción cambiar_foto y
+// recarga el panel: no borra el producto ni toca precios ni proveedores.
+function abrirEditorFoto(pid){
+  const p = productosPorId[pid];
+  if(!p) return;
+  const ed = document.querySelector('[data-cf-editor="' + pid + '"]');
+  if(!ed) return;
+  editoresFoto[pid] = {abierto: true, cargando: true, datos: null, mostrarUsadas: false};
+  ed.style.display = '';
+  ed.innerHTML = '<p class="sub">Buscando fotos en Drive y en internet…</p>';
+  llamarAPI('foto_automatica', {grupo: p.grupo, tipo: p.tipo, modelo: p.modelo || ''}).then(function(r){
+    const est = editoresFoto[pid];
+    if(!est || !est.abierto) return;
+    est.cargando = false;
+    if(!r.ok){
+      ed.innerHTML = '<p class="sub">' + escapar(r.error || 'No se pudo buscar fotos.') + '</p>' +
+        '<div class="fila-foto"><button class="btn-chico" data-cf-cerrar="' + pid + '">Cerrar</button></div>';
+      enlazarEditorFoto(pid);
+      return;
+    }
+    est.datos = r;
+    renderEditorFoto(pid);
+  }).catch(function(){
+    const est = editoresFoto[pid];
+    if(!est || !est.abierto) return;
+    est.cargando = false;
+    ed.innerHTML = '<p class="sub">No se pudo hablar con el backend.</p>' +
+      '<div class="fila-foto"><button class="btn-chico" data-cf-cerrar="' + pid + '">Cerrar</button></div>';
+    enlazarEditorFoto(pid);
+  });
+}
+
+function renderEditorFoto(pid){
+  const p = productosPorId[pid];
+  const est = editoresFoto[pid];
+  const ed = document.querySelector('[data-cf-editor="' + pid + '"]');
+  if(!p || !est || !ed) return;
+  const d = est.datos || {};
+  const actualId = idDriveDeUrl(p.foto_url);
+  let html = '<label>Cambiar foto · ' + escapar(p.tipo + ' ' + (p.modelo || '')) + '</label>';
+  if(d.detalle) html += '<p class="sub">' + escapar(d.detalle) + '</p>';
+  const candidatas = d.candidatas || [];
+  if(candidatas.length){
+    html += '<p class="sub">Fotos de Drive (carpeta ' + escapar(p.grupo) + '):</p><div class="pg-minis">' + candidatas.map(function(c){
+      return '<span class="pg-mini-wrap" data-cf-drive="' + escapar(c.drive_id) + '" title="' + escapar(c.nombre) + '"><img class="pg-mini" src="' + escapar(c.foto_url) + '" alt="' + escapar(c.nombre) + '"></span>';
+    }).join('') + '</div>';
+  }
+  const usadas = d.usadas || [];
+  if(usadas.length){
+    html += '<div class="fila-foto"><button class="btn-chico" data-cf-usadas="' + pid + '">' + (est.mostrarUsadas ? 'Ocultar' : 'Mostrar') + ' fotos ya usadas (' + usadas.length + ')</button></div>';
+    if(est.mostrarUsadas){
+      html += '<p class="pg-usadas">Ya están asignadas a otro producto. Elígela solo si la quieres también aquí.</p><div class="pg-minis">' + usadas.map(function(c){
+        const esActual = actualId && c.drive_id === actualId;
+        return '<span class="pg-mini-wrap usada' + (esActual ? ' elegida' : '') + '" data-cf-drive="' + escapar(c.drive_id) + '" title="' + escapar(c.nombre) + (esActual ? ' (foto actual)' : ' (ya usada en otro producto)') + '"><img class="pg-mini usada' + (esActual ? ' elegida' : '') + '" src="' + escapar(c.foto_url) + '" alt="' + escapar(c.nombre) + '"></span>';
+      }).join('') + '</div>';
+    }
+  }
+  if(!candidatas.length && !usadas.length){
+    html += '<p class="sub">No hay fotos en Drive para este grupo.</p>';
+  }
+  const opciones = d.opciones || [];
+  if(opciones.length){
+    html += '<p class="sub">Referencias de internet:</p><div class="pg-minis">' + opciones.map(function(op, k){
+      return '<span class="pg-mini-wrap" data-cf-opcion="' + k + '" title="' + escapar(op.fuente || op.origen || '') + '"><img class="pg-mini" src="' + escapar(op.foto_url) + '" alt="Opción ' + (k + 1) + ' de ' + escapar(op.origen || 'Internet') + '"></span>';
+    }).join('') + '</div>';
+  }
+  html += '<div class="fila-foto"><button class="btn-chico btn-toggle" data-cf-buscar="' + pid + '">Buscar foto de referencia</button></div>';
+  html += '<label>o pega la dirección de una foto<input data-cf-url placeholder="https://…"></label>' +
+    '<div class="fila-foto"><button class="btn-chico btn-toggle" data-cf-guardar-url="' + pid + '">Guardar foto desde la web</button>' +
+    '<button class="btn-chico" data-cf-cerrar="' + pid + '">Cerrar</button></div>';
+  ed.innerHTML = html;
+  enlazarEditorFoto(pid);
+}
+
+function enlazarEditorFoto(pid){
+  const ed = document.querySelector('[data-cf-editor="' + pid + '"]');
+  if(!ed) return;
+  ed.querySelectorAll('[data-cf-drive]').forEach(function(el){
+    el.onclick = function(){ guardarFotoProducto(pid, {drive_id: el.getAttribute('data-cf-drive')}); };
+  });
+  ed.querySelectorAll('[data-cf-opcion]').forEach(function(el){
+    el.onclick = function(){
+      const est = editoresFoto[pid];
+      const op = est && est.datos && est.datos.opciones && est.datos.opciones[Number(el.getAttribute('data-cf-opcion'))];
+      if(!op) return;
+      guardarFotoProducto(pid, {image_url: op.foto_url});
+    };
+  });
+  ed.querySelectorAll('[data-cf-usadas]').forEach(function(btn){
+    btn.onclick = function(){
+      editoresFoto[pid].mostrarUsadas = !editoresFoto[pid].mostrarUsadas;
+      renderEditorFoto(pid);
+    };
+  });
+  ed.querySelectorAll('[data-cf-buscar]').forEach(function(btn){
+    btn.onclick = function(){ abrirEditorFoto(pid); };
+  });
+  ed.querySelectorAll('[data-cf-guardar-url]').forEach(function(btn){
+    btn.onclick = function(){
+      const inp = ed.querySelector('[data-cf-url]');
+      const url = inp ? inp.value.trim() : '';
+      const global = document.getElementById('msg-global');
+      if(!url){ mensaje(global, 'error', 'Pega primero la dirección de la foto.'); return; }
+      guardarFotoProducto(pid, {image_url: url});
+    };
+  });
+  ed.querySelectorAll('[data-cf-cerrar]').forEach(function(btn){
+    btn.onclick = function(){
+      editoresFoto[pid] = {abierto: false};
+      ed.style.display = 'none';
+      ed.innerHTML = '';
+    };
+  });
+}
+
+function guardarFotoProducto(pid, foto){
+  const global = document.getElementById('msg-global');
+  const datos = {producto_id: pid};
+  if(foto.drive_id) datos.drive_id = foto.drive_id;
+  if(foto.image_url) datos.image_url = foto.image_url;
+  mensaje(global, 'info', 'Cambiando la foto…');
+  llamarAPI('cambiar_foto', datos).then(function(r){
+    if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo cambiar la foto.'); return; }
+    mensaje(global, 'ok', 'Foto cambiada.');
+    editoresFoto[pid] = {abierto: false};
+    cargarPanel();
+  }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+}
+
 function vistaSinBackend(){
   document.getElementById('app').innerHTML =
     '<div class="tarjeta"><h2>El backend aún no está conectado</h2>' +
@@ -496,8 +642,17 @@ function vistaPanel(datos){
     const provs = datos.proveedores.filter(function(s){ return String(s.producto_id) === String(p.id); });
     const div = document.createElement('div');
     div.className = 'prov';
+    productosPorId[p.id] = p;
     let h = '<div class="prod-titulo">' + escapar(p.tipo) + ' ' + escapar(p.modelo) + '</div>' +
       '<div class="prod-sub">' + escapar(p.grupo) + ' · Foto: ' + escapar(p.foto_tipo || 'referencia') + '</div>';
+    h += '<div class="prod-foto">' +
+      (p.foto_url
+        ? '<img class="pg-mini" src="' + escapar(p.foto_url) + '" alt="Foto actual"' + (esAdmin ? ' data-cambiar-foto="' + p.id + '" title="Toca para cambiar la foto"' : '') + '>'
+        : '<span class="sin-foto">Sin foto</span>') +
+      '<span class="pg-origen">' + escapar(pgOrigenTexto({origen: fotoOrigenDeUrl(p.foto_url)})) + '</span>' +
+      (esAdmin ? '<button class="btn-chico" data-cambiar-foto="' + p.id + '">Cambiar foto</button>' : '') +
+      '</div>' +
+      (esAdmin ? '<div class="cf-editor" data-cf-editor="' + p.id + '" style="display:none"></div>' : '');
     if(!provs.length) h += '<p class="sub">Sin proveedores todavía.</p>';
     provs.forEach(function(s){
       h += '<div class="prov" data-prov="' + s.id + '">' +
@@ -539,6 +694,21 @@ function vistaPanel(datos){
           cargarPanel();
         }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
       }
+    };
+  });
+
+  // Cambiar foto (miniatura por producto, solo admin)
+  lista.querySelectorAll('[data-cambiar-foto]').forEach(function(el){
+    el.onclick = function(){
+      const pid = el.getAttribute('data-cambiar-foto');
+      const ed = document.querySelector('[data-cf-editor="' + pid + '"]');
+      const est = editoresFoto[pid];
+      if(est && est.abierto){
+        editoresFoto[pid] = {abierto: false};
+        if(ed){ ed.style.display = 'none'; ed.innerHTML = ''; }
+        return;
+      }
+      abrirEditorFoto(pid);
     };
   });
 
