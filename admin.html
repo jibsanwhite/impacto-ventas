@@ -190,6 +190,14 @@ function idDriveDeUrl(url){
   const m = String(url || '').match(/[?&]id=([A-Za-z0-9_-]+)/);
   return m ? m[1] : '';
 }
+// Moneda de un proveedor: USD/MN/CUP. Si la guardada es otra (p. ej. EUR
+// de un mensaje viejo), se añade tal cual para no resetearla sin querer.
+function monedaSelectHtml(monedaActual){
+  var opciones = ['USD', 'MN', 'CUP'];
+  if(opciones.indexOf(monedaActual) === -1) opciones.push(monedaActual);
+  return '<select data-campo="moneda" data-moneda-original="' + escapar(monedaActual) + '" aria-label="Moneda">' +
+    opciones.map(function(m){ return '<option' + (m === monedaActual ? ' selected' : '') + '>' + m + '</option>'; }).join('') + '</select>';
+}
 
 function renderVistaPegar(){
   const vista = document.getElementById('pg-vista');
@@ -608,7 +616,7 @@ function vistaPanel(datos){
   // Productos y proveedores
   html += '<div class="tarjeta"><h2>Productos y existencias</h2>' +
     '<p class="sub">' + (esAdmin
-      ? 'Marca agotado o disponible por proveedor. El cliente ve "desde" el precio más bajo y el producto queda agotado cuando ningún proveedor lo tiene.'
+      ? 'Marca agotado o disponible por proveedor. El cliente ve "desde" el precio más bajo y el producto queda agotado cuando ningún proveedor lo tiene. El botón de cada producto lo pone disponible o no disponible, y la moneda de cada proveedor se corrige junto al precio sin tocar el importe.'
       : 'Estos son tus proveedores. Puedes cambiar el precio y marcar agotado o disponible. Tu comisión la ves solo tú.') + '</p>' +
     '<div id="lista-productos"></div></div>';
 
@@ -702,6 +710,7 @@ function vistaPanel(datos){
         : '<span class="sin-foto">Sin foto</span>') +
       '<span class="pg-origen">' + escapar(pgOrigenTexto({origen: fotoOrigenDeUrl(p.foto_url)})) + '</span>' +
       (esAdmin ? '<button class="btn-chico" data-cambiar-foto="' + p.id + '">Cambiar foto</button>' : '') +
+      (esAdmin ? '<button class="btn-chico btn-toggle' + (String(p.estado || 'disponible') === 'vendido' ? ' agotado' : '') + '" data-estado-prod="' + p.id + '">' + (String(p.estado || 'disponible') === 'vendido' ? 'No disponible' : 'Disponible ✓') + '</button>' : '') +
       '</div>' +
       (esAdmin ? '<div class="cf-editor" data-cf-editor="' + p.id + '" style="display:none"></div>' : '');
     if(!provs.length) h += '<p class="sub">Sin proveedores todavía.</p>';
@@ -709,7 +718,8 @@ function vistaPanel(datos){
       h += '<div class="prov" data-prov="' + s.id + '">' +
         '<div class="nombre">' + escapar(s.proveedor) + (s.gestor_usuario ? ' · gestor: ' + escapar(s.gestor_usuario) : '') + '</div>' +
         '<div class="linea">' +
-          '<input type="number" min="0" step="1" value="' + s.precio + '" data-campo="precio" aria-label="Precio"> ' + escapar(s.moneda) +
+          '<input type="number" min="0" step="1" value="' + s.precio + '" data-campo="precio" aria-label="Precio"> ' +
+          (esAdmin ? monedaSelectHtml(s.moneda) : escapar(s.moneda)) +
           '<button class="btn-chico btn-toggle" data-accion="precio">Guardar precio</button>' +
           '<button class="btn-chico btn-toggle' + (s.stock_disponible ? '' : ' agotado') + '" data-accion="stock">' + (s.stock_disponible ? 'Disponible ✓' : 'Agotado') + '</button>' +
         '</div>' +
@@ -734,9 +744,17 @@ function vistaPanel(datos){
       if(acc === 'precio'){
         const val = Number(fila.querySelector('[data-campo="precio"]').value);
         if(!val || val <= 0){ mensaje(global, 'error', 'Escribe un precio mayor que 0.'); return; }
-        llamarAPI('update_proveedor', {id: id, precio: val}).then(function(r){
+        // Solo el admin ve el selector de moneda (el gestor no puede
+        // cambiarla en el backend: se ignoraría sin avisar). El importe no
+        // se toca: solo viaja la moneda elegida.
+        const datosPrecio = {id: id, precio: val};
+        const selMoneda = fila.querySelector('[data-campo="moneda"]');
+        const monedaNueva = selMoneda ? selMoneda.value : null;
+        const monedaCambiada = monedaNueva && selMoneda.getAttribute('data-moneda-original') !== monedaNueva;
+        if(monedaNueva) datosPrecio.moneda = monedaNueva;
+        llamarAPI('update_proveedor', datosPrecio).then(function(r){
           if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo guardar el precio.'); return; }
-          mensaje(global, 'ok', 'Precio actualizado.');
+          mensaje(global, 'ok', monedaCambiada ? ('Moneda corregida a ' + monedaNueva + '. El importe no cambió.') : 'Precio actualizado.');
         }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
       } else {
         const esDisponible = btn.textContent.indexOf('Disponible') === 0;
@@ -745,6 +763,24 @@ function vistaPanel(datos){
           cargarPanel();
         }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
       }
+    };
+  });
+
+  // Estado del producto (solo admin): disponible / no disponible.
+  // update_producto ya existe y es solo de admin; el catálogo público
+  // respeta el estado propio del producto.
+  lista.querySelectorAll('[data-estado-prod]').forEach(function(btn){
+    btn.onclick = function(){
+      const pid = btn.getAttribute('data-estado-prod');
+      const global = document.getElementById('msg-global');
+      const esDisponible = btn.textContent.indexOf('Disponible') === 0;
+      const nuevo = esDisponible ? 'vendido' : 'disponible';
+      mensaje(global, 'info', esDisponible ? 'Marcando el producto como no disponible…' : 'Marcando el producto como disponible…');
+      llamarAPI('update_producto', {id: pid, estado: nuevo}).then(function(r){
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudo cambiar el estado.'); return; }
+        mensaje(global, 'ok', esDisponible ? 'Producto marcado como no disponible.' : 'Producto marcado como disponible.');
+        cargarPanel();
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
     };
   });
 
