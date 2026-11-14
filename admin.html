@@ -76,6 +76,9 @@
   .pg-mini-wrap.usada::before{content:'USADA';position:absolute;bottom:2px;left:2px;right:2px;font-size:8px;font-weight:900;letter-spacing:.03em;text-align:center;background:rgba(10,10,10,.75);color:#fff;border-radius:4px;padding:1px 0;z-index:1}
   .pg-usadas{font-size:11px;color:var(--muted);margin-top:6px}
   .pg-origen{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--lime)}
+  .pg-alcance{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .pg-chip{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--muted);cursor:pointer;width:auto;height:auto;margin-top:0}
+  .pg-chip.activo{border-color:var(--lime);color:var(--lime)}
   .pg-prod{border-top:1px solid var(--border);padding:16px 0}
   .pg-prov{border:1px solid var(--border);border-radius:16px;padding:12px;margin-top:10px;background:var(--panel)}
   .pg-prov .linea{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
@@ -165,6 +168,20 @@ function pgOrigenTexto(foto){
   if(foto.origen === 'internet') return 'Internet · referencia';
   return 'Sin foto';
 }
+// Alcance que permite el motivo: qué campos toca la actualización al
+// registrar. Los chips son la autoridad (el backend usa of.alcance si
+// viene; sin motivo, todo activo = actualización completa, como siempre).
+function pgAlcanceHtml(of){
+  var a = of.alcance || { precio: true, caracteristicas: true, proveedores: true, foto: true };
+  function chip(clave, texto){
+    return '<button type="button" class="pg-chip' + (a[clave] ? ' activo' : '') + '" data-pg-alcance-chip="' + clave + '">' + texto + '</button>';
+  }
+  var todo = a.precio && a.caracteristicas && a.proveedores && a.foto;
+  return '<div class="pg-alcance"><span class="pg-usadas">Alcance:</span>' +
+    chip('precio', 'Precio') + chip('caracteristicas', 'Características') +
+    chip('proveedores', 'Proveedores') + chip('foto', 'Foto') +
+    '<button type="button" class="pg-chip' + (todo ? ' activo' : '') + '" data-pg-alcance-chip="todo">Todo</button></div>';
+}
 function fotoOrigenDeUrl(url){
   if(!url) return '';
   return String(url).indexOf('drive.google.com') !== -1 ? 'drive' : 'internet';
@@ -185,6 +202,8 @@ function renderVistaPegar(){
       '<label>Tipo<input data-pg="tipo" value="' + escapar(of.tipo || '') + '"></label>' +
       '<label>Modelo<input data-pg="modelo" value="' + escapar(of.modelo || '') + '"></label>' +
       '<label>Características<textarea data-pg="caracteristicas" rows="2">' + escapar(of.caracteristicas || '') + '</textarea></label>';
+    html += '<label>Motivo del mensaje<input data-pg="motivo" placeholder="Sin motivo: se actualiza todo" value="' + escapar(of.motivo || '') + '"></label>';
+    html += pgAlcanceHtml(of);
     html += '<label>Foto <span class="pg-origen">' + escapar(pgOrigenTexto(foto)) + '</span></label>';
     if(foto.foto_url){
       html += '<img class="pg-foto" src="' + escapar(foto.foto_url) + '" alt="Foto del producto">';
@@ -243,6 +262,7 @@ function renderVistaPegar(){
       of.foto = {
         foto_url: el.getAttribute('data-pg-src'), foto_tipo: 'vendedor',
         origen: 'drive', drive_id: el.getAttribute('data-pg-foto'),
+        nombre_archivo: el.getAttribute('data-pg-nombre'),
         detalle: 'Elegida de Drive: ' + el.getAttribute('data-pg-nombre'),
         candidatas: (of.foto && of.foto.candidatas) || [],
         usadas: (of.foto && of.foto.usadas) || [],
@@ -313,6 +333,25 @@ function renderVistaPegar(){
       renderVistaPegar();
     };
   });
+  // Chips de alcance: tocan of.alcance y re-renderizan (recogerVistaPegar
+  // antes, como el resto de controles, para no perder lo editado).
+  vista.querySelectorAll('[data-pg-alcance-chip]').forEach(function(el){
+    el.onclick = function(){
+      recogerVistaPegar();
+      const bloque = el.closest('[data-pg-prod]');
+      const i = Number(bloque.getAttribute('data-pg-prod'));
+      const of = vistaPegar[i];
+      if(!of) return;
+      if(!of.alcance) of.alcance = { precio: true, caracteristicas: true, proveedores: true, foto: true };
+      const clave = el.getAttribute('data-pg-alcance-chip');
+      if(clave === 'todo'){
+        of.alcance = { precio: true, caracteristicas: true, proveedores: true, foto: true };
+      } else {
+        of.alcance[clave] = !of.alcance[clave];
+      }
+      renderVistaPegar();
+    };
+  });
 }
 
 function recogerVistaPegar(){
@@ -323,9 +362,15 @@ function recogerVistaPegar(){
     const i = Number(bloque.getAttribute('data-pg-prod'));
     const of = vistaPegar[i];
     if(!of) return;
-    bloque.querySelectorAll('[data-pg="tipo"],[data-pg="modelo"],[data-pg="caracteristicas"]').forEach(function(inp){
+    bloque.querySelectorAll('[data-pg="tipo"],[data-pg="modelo"],[data-pg="caracteristicas"],[data-pg="motivo"]').forEach(function(inp){
       of[inp.getAttribute('data-pg')] = inp.value.trim();
     });
+    // Sin motivo no hay alcance parcial: se borra el tipo y se abre todo,
+    // como hace el backend cuando no trae motivo.
+    if(!of.motivo){
+      of.motivo_tipo = '';
+      of.alcance = { precio: true, caracteristicas: true, proveedores: true, foto: true };
+    }
     const urlInput = bloque.querySelector('[data-pg="foto_url"]');
     if(urlInput && urlInput.value.trim() && (!of.foto || of.foto.origen !== 'drive') && urlInput.value.trim() !== (of.foto && of.foto.foto_url)){
       of.foto = { foto_url: urlInput.value.trim(), foto_tipo: 'referencia', origen: 'internet', detalle: 'Foto pegada a mano (referencia).', candidatas: (of.foto && of.foto.candidatas) || [], usadas: (of.foto && of.foto.usadas) || [], opciones: (of.foto && of.foto.opciones) || [] };
@@ -346,14 +391,20 @@ function recogerVistaPegar(){
     });
   });
   // La foto de Drive va directa; la de internet se descarga a Drive al
-  // registrar (foto_descargar).
+  // registrar (foto_descargar). El motivo y su alcance van tal cual se ven
+  // en la vista previa: sin ellos el backend caía a actualización completa.
   return vistaPegar.map(function(of){
     const foto = of.foto || {};
     return {
       grupo: of.grupo, tipo: of.tipo, modelo: of.modelo,
       caracteristicas: of.caracteristicas,
+      motivo: of.motivo || '', motivo_tipo: of.motivo_tipo || '',
+      alcance: of.alcance || { precio: true, caracteristicas: true, proveedores: true, foto: true },
+      texto_original: of.texto_original || '',
       foto_url: foto.foto_url || '', foto_tipo: foto.foto_tipo || 'referencia',
       foto_origen: foto.origen || 'ninguno', foto_descargar: foto.origen === 'internet',
+      foto_drive_id: foto.drive_id || idDriveDeUrl(foto.foto_url) || '',
+      foto_nombre_archivo: foto.nombre_archivo || '',
       proveedores: of.proveedores || []
     };
   });

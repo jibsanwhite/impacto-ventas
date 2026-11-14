@@ -1,0 +1,8 @@
+# OCR local (RapidOCR 1.4.4, la version comparada el 13/11: marca legible
+# 14/22 frente a 6/22 de Tesseract; sin tokens, sin servicios de pago).
+rapidocr-onnxruntime==1.4.4
+
+# Cliente de las APIs de Google (Drive + Sheets) con cuenta de servicio.
+google-api-python-client
+google-auth
+google-auth-httplib2
