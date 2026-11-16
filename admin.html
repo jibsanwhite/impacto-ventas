@@ -918,14 +918,19 @@ function vistaPanel(datos){
       const grupo = document.getElementById('pg-grupo').value;
       const vista = document.getElementById('pg-vista');
       if(!texto){ mensaje(global, 'error', 'Pega primero los mensajes.'); return; }
+      const btnProcesar = document.getElementById('pg-procesar');
+      btnProcesar.disabled = true;
+      btnProcesar.textContent = 'Separando productos…';
       mensaje(global, 'info', 'Procesando mensajes…');
       llamarAPI('parse_ofertas', {texto: texto, grupo: grupo}).then(function(r){
-        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudieron procesar los mensajes.'); return; }
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudieron procesar los mensajes.'); btnProcesar.disabled = false; btnProcesar.textContent = 'Procesar mensajes'; return; }
         vistaPegar = r.ofertas || [];
         if(!vistaPegar.length){
           mensaje(global, 'error', 'No se encontró ningún producto en el texto. Revisa el formato.');
           vista.innerHTML = '';
           document.getElementById('pg-registrar').style.display = 'none';
+          btnProcesar.disabled = false;
+          btnProcesar.textContent = 'Procesar mensajes';
           return;
         }
         let aviso = r.mensajes + ' mensaje(s) · ' + vistaPegar.length + ' producto(s). Revisa y corrige antes de registrar.';
@@ -933,25 +938,32 @@ function vistaPanel(datos){
         mensaje(global, 'ok', aviso);
         renderVistaPegar();
         document.getElementById('pg-registrar').style.display = '';
-      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+        btnProcesar.disabled = false;
+        btnProcesar.textContent = 'Procesar mensajes';
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); btnProcesar.disabled = false; btnProcesar.textContent = 'Procesar mensajes'; });
     };
 
     document.getElementById('pg-registrar').onclick = function(){
       const global = document.getElementById('msg-global');
       if(!vistaPegar || !vistaPegar.length) return;
       const ofertas = recogerVistaPegar();
+      const btnRegistrar = document.getElementById('pg-registrar');
+      btnRegistrar.disabled = true;
+      btnRegistrar.textContent = 'Registrando…';
       mensaje(global, 'info', 'Registrando ofertas…');
       llamarAPI('registrar_ofertas', {ofertas: ofertas}).then(function(r){
-        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudieron registrar las ofertas.'); return; }
+        if(!r.ok){ mensaje(global, 'error', r.error || 'No se pudieron registrar las ofertas.'); btnRegistrar.disabled = false; btnRegistrar.textContent = 'Registrar ofertas'; return; }
         let t = 'Registrado: ' + r.productos_creados + ' producto(s) nuevo(s), ' + r.productos_actualizados + ' actualizado(s), ' + r.proveedores_creados + ' proveedor(es) nuevo(s), ' + r.proveedores_actualizados + ' actualizado(s).';
         if(r.omitidos && r.omitidos.length) t += ' Omitidos: ' + r.omitidos.map(function(o){ return o.producto + (o.proveedor ? ' · ' + o.proveedor : '') + ' (' + o.motivo + ')'; }).join('; ');
         mensaje(global, 'ok', t);
         vistaPegar = null;
         document.getElementById('pg-vista').innerHTML = '';
+        btnRegistrar.disabled = false;
+        btnRegistrar.textContent = 'Registrar ofertas';
         document.getElementById('pg-registrar').style.display = 'none';
         document.getElementById('pg-texto').value = '';
         cargarPanel();
-      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); });
+      }).catch(function(){ mensaje(global, 'error', 'No se pudo hablar con el backend.'); btnRegistrar.disabled = false; btnRegistrar.textContent = 'Registrar ofertas'; });
     };
 
     // Sincronizar ahora

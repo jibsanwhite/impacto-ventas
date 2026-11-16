@@ -42,12 +42,22 @@ const localStorageStub = {
 };
 
 // ---------- fetch simulado ----------
-function mockFetch(url) {
+function mockFetch(url, opts) {
   if (String(url) === 'config.json') {
     return Promise.resolve({ json: () => Promise.resolve({ api_url: 'https://example.com/exec' }) });
   }
   if (String(url).indexOf('?action=estado') !== -1) {
     return Promise.resolve({ json: () => Promise.resolve({ ok: true, usuarios_configurados: true }) });
+  }
+  const body = String((opts && opts.body) || '');
+  if (body.indexOf('"action":"parse_ofertas"') !== -1) {
+    return Promise.resolve({ json: () => Promise.resolve({ ok: true, mensajes: 1, ofertas: OFERTAS }) });
+  }
+  if (body.indexOf('"action":"registrar_ofertas"') !== -1) {
+    return Promise.resolve({ json: () => Promise.resolve({ ok: true, productos_creados: 2, productos_actualizados: 0, proveedores_creados: 2, proveedores_actualizados: 0 }) });
+  }
+  if (body.indexOf('"action":"datos_gestion"') !== -1) {
+    return Promise.resolve({ json: () => Promise.resolve({ ok: true, productos: [], proveedores: [] }) });
   }
   return Promise.resolve({ json: () => Promise.resolve({ ok: true }) });
 }
@@ -192,6 +202,31 @@ function payload() {
     eq(p[0].motivo, '');
     eq(p[0].motivo_tipo, '');
     deepEq(p[0].alcance, { precio: true, caracteristicas: true, proveedores: true, foto: true });
+  });
+
+  // Botones con estado visible mientras la tarea está en curso.
+  await check('pg-procesar se desactiva y dice "Separando productos…" mientras separa', async () => {
+    G('sesion = {rol: "administrador", nombre: "Prueba", usuario: "prueba"};');
+    G('vistaPanel({productos: [], proveedores: []});');
+    G('document.getElementById("pg-texto"); document.getElementById("pg-grupo");');
+    elementos['pg-texto'].value = '[16/11/26 09:22] Nathali: Producto: Bicicleta eléctrica\n\nPrecio:550 USD';
+    elementos['pg-procesar'].onclick();
+    eq(elementos['pg-procesar'].disabled, true, 'desactivado mientras separa');
+    eq(elementos['pg-procesar'].textContent, 'Separando productos…', 'texto mientras separa');
+    await tick(); await tick();
+    eq(elementos['pg-procesar'].disabled, false, 'reactivado al terminar');
+    eq(elementos['pg-procesar'].textContent, 'Procesar mensajes', 'texto restaurado');
+    eq(elementos['pg-registrar'].style.display, '', 'registrar visible tras separar con productos');
+  });
+
+  await check('pg-registrar se desactiva y dice "Registrando…" mientras registra', async () => {
+    elementos['pg-registrar'].onclick();
+    eq(elementos['pg-registrar'].disabled, true, 'desactivado mientras registra');
+    eq(elementos['pg-registrar'].textContent, 'Registrando…', 'texto mientras registra');
+    await tick(); await tick();
+    eq(elementos['pg-registrar'].disabled, false, 'reactivado al terminar');
+    eq(elementos['pg-registrar'].textContent, 'Registrar ofertas', 'texto restaurado');
+    eq(elementos['pg-registrar'].style.display, 'none', 'oculto tras registrar bien');
   });
 
   console.log('\n' + PASSED + ' checks pasaron.' + (process.exitCode ? ' HUBO FALLAS.' : ' TODO OK.'));
