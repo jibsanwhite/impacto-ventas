@@ -613,13 +613,6 @@ function vistaPanel(datos){
     '<button class="btn-chico" id="salir" style="background:var(--panel);color:var(--text);border:1px solid var(--border)">Salir</button></div>';
   html += '<div id="msg-global"></div>';
 
-  // Productos y proveedores
-  html += '<div class="tarjeta"><h2>Productos y existencias</h2>' +
-    '<p class="sub">' + (esAdmin
-      ? 'Marca agotado o disponible por proveedor. El cliente ve "desde" el precio más bajo y el producto queda agotado cuando ningún proveedor lo tiene. El botón de cada producto lo pone disponible o no disponible, y la moneda de cada proveedor se corrige junto al precio sin tocar el importe.'
-      : 'Estos son tus proveedores. Puedes cambiar el precio y marcar agotado o disponible. Tu comisión la ves solo tú.') + '</p>' +
-    '<div id="lista-productos"></div></div>';
-
   // Pegar ofertas (solo administradores)
   if(esAdmin){
     html += '<div class="tarjeta"><h2>Pegar ofertas</h2>' +
@@ -673,6 +666,13 @@ function vistaPanel(datos){
       '<label>Garantía<input id="pr-garantia" placeholder="ej. 7 días"></label>' +
       '<label>Notas internas (solo gestión)<textarea id="pr-notas" rows="2" placeholder="ej. Si el cliente rechaza, paga el envío igual"></textarea></label>' +
       '<button class="btn-primario" id="pr-boton">Añadir proveedor</button></div>';
+
+    // Productos y proveedores
+    html += '<div class="tarjeta"><h2>Productos y existencias</h2>' +
+      '<p class="sub">' + (esAdmin
+        ? 'Marca agotado o disponible por proveedor. El cliente ve "desde" el precio más bajo y el producto queda agotado cuando ningún proveedor lo tiene. El botón de cada producto lo pone disponible o no disponible, y la moneda de cada proveedor se corrige junto al precio sin tocar el importe.'
+        : 'Estos son tus proveedores. Puedes cambiar el precio y marcar agotado o disponible. Tu comisión la ves solo tú.') + '</p>' +
+      '<div id="lista-productos"></div></div>';
 
     // Usuarios
     html += '<div class="tarjeta"><h2>Usuarios</h2>' +
