@@ -4,7 +4,7 @@
 
 ## Qué es esto y por qué
 
-Esto es un servidor virtual gratis (VPS) en Oracle Cloud que cada noche a las 02:00 corre el script de renombrado de fotos de Impacto con RapidOCR. Sirve para que las fotos que llegan de WhatsApp con nombres tipo `IMG-...-WA....jpg` se renombren solas con el código del producto, aunque Max no esté disponible.
+Esto es un servidor virtual gratis (VPS) en Oracle Cloud que cada 15 minutos revisa las carpetas de Fotos y corre el script de renombrado de fotos de Impacto con RapidOCR. Sirve para que las fotos que llegan de WhatsApp con nombres tipo `IMG-...-WA....jpg` se renombren solas con el código del producto, aunque Max no esté disponible. Una foto subida a las 10:03 queda renombrada a las 10:18 como tarde.
 
 Si el VPS no corre un día, **nada se rompe**: las fotos quedan con su nombre de WhatsApp y se emparejan a mano con el botón "Elegir de Drive". El trabajo manual sigue funcionando siempre.
 
@@ -146,7 +146,7 @@ Con eso yo instalo y pruebo. **No me pases tu contraseña de Oracle ni tu contra
 4. Corro el instalador: `sudo bash /opt/impacto-tools/install.sh`. Instala Python, RapidOCR y las dependencias del script.
 5. Hago la prueba en seco, sin renombrar nada: `python3 /opt/impacto-tools/renombrar_fotos.py --dry-run`. El registro queda en `/var/log/impacto-renombrar.log`.
 6. **Te muestro el resultado de la prueba** (qué fotos renombraría y cuáles no pudo emparejar) y espero tu visto bueno.
-7. Solo con tu visto bueno, activo el cron de cada noche a las 02:00 para que el script corra solo.
+7. Solo con tu visto bueno, activo el cron cada 15 minutos para que el script revise las carpetas solo.
 8. Te confirmo que el cron quedó activo y te digo qué día se hizo la primera corrida real.
 
 ---
@@ -184,7 +184,7 @@ Marca cada casilla cuando lo tengas hecho:
 - [ ] Archivo JSON pasado a Max (por el chat o subido a Drive).
 - [ ] Clave privada SSH pasada a Max cuando la pida.
 - [ ] Prueba `--dry-run` de Max revisada y aprobada por ti.
-- [ ] Cron de las 02:00 activado por Max con tu visto bueno.
+- [ ] Cron cada 15 minutos activado por Max con tu visto bueno.
 
 ---
 

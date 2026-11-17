@@ -130,10 +130,10 @@ escribe nada en Drive):
 El script también acepta la variable de entorno
 `GOOGLE_APPLICATION_CREDENTIALS` en vez de `--credentials`.
 
-## Cron nocturna (02:00)
+## Cron cada 15 minutos
 
 ```cron
-0 2 * * * /opt/impacto-tools/venv/bin/python /opt/impacto-tools/renombrar_fotos.py --live --credentials /opt/impacto-tools/service-account.json >> /var/log/impacto-renombrar.log 2>&1
+*/15 * * * * /opt/impacto-tools/venv/bin/python /opt/impacto-tools/renombrar_fotos.py --live --credentials /opt/impacto-tools/service-account.json >> /var/log/impacto-renombrar.log 2>&1
 ```
 
 ## Modo local (pruebas sin Google)
